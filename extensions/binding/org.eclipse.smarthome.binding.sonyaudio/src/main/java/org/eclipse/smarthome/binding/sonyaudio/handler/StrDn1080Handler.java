@@ -11,8 +11,13 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.smarthome.binding.sonyaudio.handler;
+
+import java.io.IOException;
+
 import org.eclipse.smarthome.core.thing.Thing;
 import org.eclipse.smarthome.core.types.Command;
+import org.eclipse.smarthome.core.types.RefreshType;
+import org.eclipse.smarthome.core.thing.ChannelUID;
 import org.eclipse.smarthome.core.library.types.StringType;
 
 /**
@@ -83,5 +88,23 @@ public class StrDn1080Handler extends SonyAudioHandler {
       return new StringType("source");
     }
     return new StringType(input);
+  }
+
+  @Override
+  public void handleSoundField(Command command, ChannelUID channelUID) throws IOException {
+      if (command instanceof RefreshType) {
+          if(connection.getPureDirect()){
+              updateState(channelUID, new StringType("pureDirect"));
+          } else {
+              updateState(channelUID, new StringType(connection.getSoundField()));
+          }
+      }
+      if (command instanceof StringType) {
+          if(((StringType) command).toString().equalsIgnoreCase("pureDirect")){
+              connection.setPureDirect(true);
+          } else {
+              connection.setSoundField(((StringType) command).toString());
+          }
+      }
   }
 }
