@@ -9,7 +9,6 @@
 		<channels>
 			<channel id="power" typeId="power" />
 			<channel id="soundField" typeId="sound-field-dn1080" />
-			<channel id="pureDirect" typeId="pure-direct-dn1080" />
 		</channels>
 	</channel-group-type>
 
@@ -136,6 +135,7 @@
 		<description>Select the Sound Field for the receiver</description>
 		<state>
 			<options>
+				<option value="pureDirect">Pure Direct</option>
 				<option value="2chStereo">2ch Stereo</option>
 				<option value="multiChStereo">Multi Ch Stereo</option>
 				<option value="direct">Direct</option>
@@ -147,13 +147,6 @@
 				<option value="off">Off</option>
 			</options>
 		</state>
-	</channel-type>
-
-	<channel-type id="pure-direct-dn1080">
-		<item-type>Switch</item-type>
-		<label>Pure Direct</label>
-		<description>Turn Pure Direct on/off on the device</description>
-		<category>Switch</category>
 	</channel-type>
 
 	<!-- STR-DN1080 Thing Type -->

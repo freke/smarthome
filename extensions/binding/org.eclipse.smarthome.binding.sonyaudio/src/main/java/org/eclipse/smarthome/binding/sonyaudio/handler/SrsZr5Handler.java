@@ -11,8 +11,13 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.smarthome.binding.sonyaudio.handler;
+
+import java.io.IOException;
+
 import org.eclipse.smarthome.core.thing.Thing;
 import org.eclipse.smarthome.core.types.Command;
+import org.eclipse.smarthome.core.types.RefreshType;
+import org.eclipse.smarthome.core.thing.ChannelUID;
 import org.eclipse.smarthome.core.library.types.StringType;
 
 /**
@@ -23,40 +28,58 @@ import org.eclipse.smarthome.core.library.types.StringType;
  */
 public class SrsZr5Handler extends SonyAudioHandler {
 
-  public SrsZr5Handler(Thing thing) {
-      super(thing);
-  }
+    public SrsZr5Handler(Thing thing) {
+        super(thing);
+    }
 
-  @Override
-  public String setInputCommand(Command command){
-    switch(((StringType) command).toString().toLowerCase()){
-      case "btaudio": return "extInput:btAudio";
-      case "usb": return "storage:usb1";
-      case "analog": return "extInput:line?port=1";
-      case "hdmi": return "extInput:hdmi";
-      case "network": return "dlna:music";
+    @Override
+    public String setInputCommand(Command command){
+      switch(((StringType) command).toString().toLowerCase()){
+        case "btaudio": return "extInput:btAudio";
+        case "usb": return "storage:usb1";
+        case "analog": return "extInput:line?port=1";
+        case "hdmi": return "extInput:hdmi";
+        case "network": return "dlna:music";
+      }
+      return ((StringType) command).toString();
     }
-    return ((StringType) command).toString();
-  }
 
-  @Override
-  public StringType inputSource(String input){
-    String in = input.toLowerCase();
-    if(in.contains("extinput:btaudio".toLowerCase())){
-      return new StringType("btaudio");
+    @Override
+    public StringType inputSource(String input){
+        String in = input.toLowerCase();
+        if(in.contains("extinput:btaudio".toLowerCase())){
+            return new StringType("btaudio");
+        }
+        if(in.contains("storage:usb1".toLowerCase())){
+            return new StringType("usb");
+        }
+        if(in.contains("extinput:line?port=1".toLowerCase())){
+            return new StringType("analog");
+        }
+        if(in.contains("extinput:hdmi".toLowerCase())){
+            return new StringType("hdmi1");
+        }
+        if(in.contains("dlna:music".toLowerCase())){
+            return new StringType("network");
+        }
+        return new StringType(input);
     }
-    if(in.contains("storage:usb1".toLowerCase())){
-      return new StringType("usb");
+
+    @Override
+    public void handleSoundField(Command command, ChannelUID channelUID) throws IOException {
+        if (command instanceof RefreshType) {
+            if(connection.getClearAudio()){
+                updateState(channelUID, new StringType("clearAudio"));
+            } else {
+                updateState(channelUID, new StringType(connection.getSoundField()));
+            }
+        }
+        if (command instanceof StringType) {
+            if(((StringType) command).toString().equalsIgnoreCase("clearAudio")){
+                connection.setClearAudio(true);
+            } else {
+                connection.setSoundField(((StringType) command).toString());
+            }
+        }
     }
-    if(in.contains("extinput:line?port=1".toLowerCase())){
-      return new StringType("analog");
-    }
-    if(in.contains("extinput:hdmi".toLowerCase())){
-      return new StringType("hdmi1");
-    }
-    if(in.contains("dlna:music".toLowerCase())){
-      return new StringType("network");
-    }
-    return new StringType(input);
-  }
 }

@@ -51,8 +51,8 @@ abstract class SonyAudioHandler extends BaseThingHandler implements SonyAudioEve
 
     private final Logger logger = LoggerFactory.getLogger(SonyAudioHandler.class);
 
-    private SonyAudioConnection connection;
-
+    protected SonyAudioConnection connection;
+´
     private ScheduledFuture<?> connectionCheckerFuture;
     private ScheduledFuture<?> refreshJob;
 
@@ -78,230 +78,77 @@ abstract class SonyAudioHandler extends BaseThingHandler implements SonyAudioEve
             switch (id) {
                 case CHANNEL_POWER:
                 case CHANNEL_MASTER_POWER:
-                    if (command instanceof RefreshType) {
-                      updateState(channelUID, connection.getPower() ? OnOffType.ON : OnOffType.OFF);
-                    }
-                    if (command instanceof OnOffType) {
-                      connection.setPower(setPowerCommand(command));
-                    }
+                    handlePowerCommand(command, channelUID);
                     break;
                 case CHANNEL_ZONE1_POWER:
-                    if (command instanceof RefreshType) {
-                        updateState(channelUID, connection.getPower(1) ? OnOffType.ON : OnOffType.OFF);
-                    }
-                    if (command instanceof OnOffType) {
-                        connection.setPower(setPowerCommand(command), 1);
-                    }
+                    handlePowerCommand(command, channelUID, 1);
                     break;
                 case CHANNEL_ZONE2_POWER:
-                    if (command instanceof RefreshType) {
-                        updateState(channelUID, connection.getPower(2) ? OnOffType.ON : OnOffType.OFF);
-                    }
-                    if (command instanceof OnOffType) {
-                        connection.setPower(setPowerCommand(command), 2);
-                    }
+                    handlePowerCommand(command, channelUID, 2);
                     break;
                 case CHANNEL_ZONE3_POWER:
-                    if (command instanceof RefreshType) {
-                        updateState(channelUID, connection.getPower(3) ? OnOffType.ON : OnOffType.OFF);
-                    }
-                    if (command instanceof OnOffType) {
-                        connection.setPower(setPowerCommand(command), 3);
-                    }
+                    handlePowerCommand(command, channelUID, 3);
                     break;
                 case CHANNEL_ZONE4_POWER:
-                    if (command instanceof RefreshType) {
-                        updateState(channelUID, connection.getPower(4) ? OnOffType.ON : OnOffType.OFF);
-                    }
-                    if (command instanceof OnOffType) {
-                        connection.setPower(setPowerCommand(command), 4);
-                    }
+                    handlePowerCommand(command, channelUID, 4);
                     break;
                 case CHANNEL_INPUT:
-                    if (command instanceof RefreshType) {
-                        updateState(channelUID, inputSource(connection.getInput()));
-                    }
-                    if (command instanceof StringType) {
-                        connection.setInput(setInputCommand(command));
-                    }
+                    handleInputCommand(command, channelUID);
                     break;
                 case CHANNEL_ZONE1_INPUT:
-                    if (command instanceof RefreshType) {
-                        input_zone.put(1,connection.getInput(1));
-                        updateState(channelUID, new StringType(input_zone.get(1)));
-                    }
-                    if (command instanceof StringType) {
-                        connection.setInput(setInputCommand(command), 1);
-                    }
+                    handleInputCommand(command, channelUID, 1);
                     break;
                 case CHANNEL_ZONE2_INPUT:
-                    if (command instanceof RefreshType) {
-                        input_zone.put(2,connection.getInput(2));
-                        updateState(channelUID, new StringType(input_zone.get(2)));
-                    }
-                    if (command instanceof StringType) {
-                        connection.setInput(setInputCommand(command), 2);
-                    }
+                    handleInputCommand(command, channelUID, 2);
                     break;
                 case CHANNEL_ZONE3_INPUT:
-                    if (command instanceof RefreshType) {
-                        input_zone.put(3,connection.getInput(3));
-                        updateState(channelUID, new StringType(input_zone.get(3)));
-                    }
-                    if (command instanceof StringType) {
-                        connection.setInput(setInputCommand(command), 3);
-                    }
+                    handleInputCommand(command, channelUID, 3);
                     break;
                 case CHANNEL_ZONE4_INPUT:
-                    if (command instanceof RefreshType) {
-                        input_zone.put(4,connection.getInput(4));
-                        updateState(channelUID, new StringType(input_zone.get(4)));
-                    }
-                    if (command instanceof StringType) {
-                        connection.setInput(setInputCommand(command), 4);
-                    }
+                    handleInputCommand(command, channelUID, 4);
                     break;
                 case CHANNEL_VOLUME:
-                    if (command instanceof RefreshType) {
-                        updateState(channelUID, new DecimalType(connection.getVolume() / 100.0));
-                    }
-                    if (command instanceof DecimalType) {
-                        connection.setVolume(setVolumeCommand(command));
-                    }
+                    handleVolumeCommand(command, channelUID);
                     break;
                 case CHANNEL_ZONE1_VOLUME:
-                    if (command instanceof RefreshType) {
-                        updateState(channelUID, new DecimalType(connection.getVolume(1) / 100.0));
-                    }
-                    if (command instanceof DecimalType) {
-                        connection.setVolume(setVolumeCommand(command), 1);
-                    }
+                    handleVolumeCommand(command, channelUID, 1);
                     break;
                 case CHANNEL_ZONE2_VOLUME:
-                    if (command instanceof RefreshType) {
-                        updateState(channelUID, new DecimalType(connection.getVolume(2) / 100.0));
-                    }
-                    if (command instanceof DecimalType) {
-                        connection.setVolume(setVolumeCommand(command), 2);
-                    }
+                    handleVolumeCommand(command, channelUID, 2);
                     break;
                 case CHANNEL_ZONE3_VOLUME:
-                    if (command instanceof RefreshType) {
-                        updateState(channelUID, new DecimalType(connection.getVolume(3) / 100.0));
-                    }
-                    if (command instanceof DecimalType) {
-                        connection.setVolume(setVolumeCommand(command), 3);
-                    }
+                    handleVolumeCommand(command, channelUID, 3);
                     break;
                 case CHANNEL_ZONE4_VOLUME:
-                    if (command instanceof RefreshType) {
-                        updateState(channelUID, new DecimalType(connection.getVolume(4) / 100.0));
-                    }
-                    if (command instanceof DecimalType) {
-                        connection.setVolume(setVolumeCommand(command), 4);
-                    }
+                    handleVolumeCommand(command, channelUID, 4);
                     break;
                 case CHANNEL_MUTE:
-                    if (command instanceof RefreshType) {
-                        updateState(channelUID, connection.getMute() ? OnOffType.ON : OnOffType.OFF);
-                    }
-                    if (command instanceof OnOffType) {
-                        connection.setMute(setMuteCommand(command));
-                    }
+                    handleMuteCommand(command, channelUID);
                     break;
                 case CHANNEL_ZONE1_MUTE:
-                    if (command instanceof RefreshType) {
-                        updateState(channelUID, connection.getMute(1) ? OnOffType.ON : OnOffType.OFF);
-                    }
-                    if (command instanceof OnOffType) {
-                        connection.setMute(setMuteCommand(command), 1);
-                    }
+                    handleMuteCommand(command, channelUID, 1);
                     break;
                 case CHANNEL_ZONE2_MUTE:
-                    if (command instanceof RefreshType) {
-                        updateState(channelUID, connection.getMute(2) ? OnOffType.ON : OnOffType.OFF);
-                    }
-                    if (command instanceof OnOffType) {
-                        connection.setMute(setMuteCommand(command), 2);
-                    }
+                    handleMuteCommand(command, channelUID, 2);
                     break;
                 case CHANNEL_ZONE3_MUTE:
-                    if (command instanceof RefreshType) {
-                        updateState(channelUID, connection.getMute(3) ? OnOffType.ON : OnOffType.OFF);
-                    }
-                    if (command instanceof OnOffType) {
-                        connection.setMute(setMuteCommand(command), 3);
-                    }
+                    handleMuteCommand(command, channelUID, 3);
                     break;
                 case CHANNEL_ZONE4_MUTE:
-                    if (command instanceof RefreshType) {
-                        updateState(channelUID, connection.getMute(4) ? OnOffType.ON : OnOffType.OFF);
-                    }
-                    if (command instanceof OnOffType) {
-                        connection.setMute(setMuteCommand(command), 4);
-                    }
+                    handleMuteCommand(command, channelUID, 4);
                     break;
                 case CHANNEL_MASTER_SOUND_FIELD:
                 case CHANNEL_SOUND_FIELD:
-                    if (command instanceof RefreshType) {
-                        updateState(channelUID, new StringType(connection.getSoundField()));
-                    }
-                    if (command instanceof StringType) {
-                        connection.setSoundField(setSoundFieldCommand(command));
-                    }
-                    break;
-                case CHANNEL_MASTER_PURE_DIRECT:
-                    if (command instanceof RefreshType) {
-                        updateState(channelUID, connection.getPureDirect() ? OnOffType.ON : OnOffType.OFF);
-                    }
-                    if (command instanceof OnOffType) {
-                        connection.setPureDirect(setPureDirectCommand(command));
-                    }
-                    break;
-                case CHANNEL_CLEAR_AUDIO:
-                    if (command instanceof RefreshType) {
-                        updateState(channelUID, connection.getClearAudio() ? OnOffType.ON : OnOffType.OFF);
-                    }
-                    if (command instanceof OnOffType) {
-                        connection.setClearAudio(setClearAudioCommand(command));
-                    }
+                    handleSoundField(command, channelUID);
                     break;
                 case CHANNEL_RADIO_FREQ:
-                    if (command instanceof RefreshType) {
-                        updateState(channelUID, new DecimalType(connection.getRadioFreq() / 1000000.0));
-                    }
+                    handleRadioCommand(command, channelUID);
                     break;
                 case CHANNEL_RADIO_STATION:
-                    if (command instanceof RefreshType) {
-                        updateState(channelUID, new DecimalType(currentRadioStation));
-                    }
-                    if (command instanceof DecimalType) {
-                        currentRadioStation = ((DecimalType) command).intValue();
-                        String radioCommand = setRadioStationCommand(currentRadioStation);
-
-                        for(int i=1; i<=4; i++){
-                          String input = input_zone.get(i);
-                          if (input != null && input.startsWith("radio:fm")) {
-                              connection.setInput(radioCommand, i);
-                          }
-                        }
-                    }
+                    handleRadioStationCommand(command, channelUID);
                     break;
                 case CHANNEL_RADIO_SEEK_STATION:
-                    if (command instanceof RefreshType) {
-                        updateState(channelUID, new StringType(""));
-                    }
-                    if (command instanceof StringType) {
-                        switch (((StringType) command).toString()) {
-                            case "fwdSeeking":
-                                connection.radioSeekFwd();
-                                break;
-                            case "bwdSeeking":
-                                connection.radioSeekBwd();
-                                break;
-                        }
-
-                    }
+                    handleRadioSeekStationCommand(command, channelUID);
                     break;
                 default:
                     logger.error("Channel {} not supported!", id);
@@ -311,35 +158,128 @@ abstract class SonyAudioHandler extends BaseThingHandler implements SonyAudioEve
         }
     }
 
-    public boolean setPowerCommand(Command command) {
-      return ((OnOffType) command) == OnOffType.ON;
+    public void handleSoundField(Command command, ChannelUID channelUID) throws IOException {
+        if (command instanceof RefreshType) {
+            updateState(channelUID, new StringType(connection.getSoundField()));
+        }
+        if (command instanceof StringType) {
+            connection.setSoundField(((StringType) command).toString());
+        }
+    }
+
+    public void handlePowerCommand(Command command, ChannelUID channelUID) throws IOException {
+        if (command instanceof RefreshType) {
+            updateState(channelUID, connection.getPower() ? OnOffType.ON : OnOffType.OFF);
+        }
+        if (command instanceof OnOffType) {
+            connection.setPower(((OnOffType) command) == OnOffType.ON);
+        }
+    }
+
+    public void handlePowerCommand(Command command, ChannelUID channelUID, int zone) throws IOException {
+        if (command instanceof RefreshType) {
+            updateState(channelUID, connection.getPower(zone) ? OnOffType.ON : OnOffType.OFF);
+        }
+        if (command instanceof OnOffType) {
+            connection.setPower(((OnOffType) command) == OnOffType.ON, zone);
+        }
+    }
+
+    public void handleInputCommand(Command command, ChannelUID channelUID) throws IOException {
+        if (command instanceof RefreshType) {
+            updateState(channelUID, inputSource(connection.getInput()));
+        }
+        if (command instanceof StringType) {
+            connection.setInput(setInputCommand(command));
+        }
+    }
+
+    public void handleInputCommand(Command command, ChannelUID channelUID, int zone) throws IOException {
+        if (command instanceof RefreshType) {
+            input_zone.put(zone,connection.getInput(zone));
+            updateState(channelUID, new StringType(input_zone.get(zone)));
+        }
+        if (command instanceof StringType) {
+            connection.setInput(setInputCommand(command), zone);
+        }
+    }
+
+    public void handleVolumeCommand(Command command, ChannelUID channelUID) throws IOException {
+        if (command instanceof RefreshType) {
+            updateState(channelUID, new DecimalType(connection.getVolume() / 100.0));
+        }
+        if (command instanceof DecimalType) {
+            connection.setVolume(((DecimalType) command).intValue());
+        }
+    }
+
+    public void handleVolumeCommand(Command command, ChannelUID channelUID, int zone) throws IOException {
+        if (command instanceof RefreshType) {
+            updateState(channelUID, new DecimalType(connection.getVolume(zone) / 100.0));
+        }
+        if (command instanceof DecimalType) {
+            connection.setVolume(((DecimalType) command).intValue(), zone);
+        }
+    }
+
+    public void handleMuteCommand(Command command, ChannelUID channelUID) throws IOException {
+        if (command instanceof RefreshType) {
+            updateState(channelUID, connection.getMute() ? OnOffType.ON : OnOffType.OFF);
+        }
+        if (command instanceof OnOffType) {
+            connection.setMute(((OnOffType) command) == OnOffType.ON);
+        }
+    }
+
+    public void handleMuteCommand(Command command, ChannelUID channelUID, int zone) throws IOException {
+        if (command instanceof RefreshType) {
+            updateState(channelUID, connection.getMute(zone) ? OnOffType.ON : OnOffType.OFF);
+        }
+        if (command instanceof OnOffType) {
+            connection.setMute(((OnOffType) command) == OnOffType.ON, zone);
+        }
+    }
+
+    public void handleRadioCommand(Command command, ChannelUID channelUID) throws IOException {
+        if (command instanceof RefreshType) {
+            updateState(channelUID, new DecimalType(connection.getRadioFreq() / 1000000.0));
+        }
+    }
+
+    public void handleRadioStationCommand(Command command, ChannelUID channelUID) throws IOException {
+        if (command instanceof RefreshType) {
+            updateState(channelUID, new DecimalType(currentRadioStation));
+        }
+        if (command instanceof DecimalType) {
+            currentRadioStation = ((DecimalType) command).intValue();
+            String radioCommand = "radio:fm?contentId=" + currentRadioStation;
+
+            for(int i=1; i<=4; i++){
+              String input = input_zone.get(i);
+              if (input != null && input.startsWith("radio:fm")) {
+                  connection.setInput(radioCommand, i);
+              }
+            }
+        }
+    }
+
+    public void handleRadioSeekStationCommand(Command command, ChannelUID channelUID) throws IOException {
+        if (command instanceof RefreshType) {
+            updateState(channelUID, new StringType(""));
+        }
+        if (command instanceof StringType) {
+            switch (((StringType) command).toString()) {
+                case "fwdSeeking":
+                    connection.radioSeekFwd();
+                    break;
+                case "bwdSeeking":
+                    connection.radioSeekBwd();
+                    break;
+            }
+        }
     }
 
     abstract public String setInputCommand(Command command);
-
-    public int setVolumeCommand(Command command){
-      return ((DecimalType) command).intValue();
-    }
-
-    public boolean setMuteCommand(Command command){
-      return ((OnOffType) command) == OnOffType.ON;
-    }
-
-    public String setSoundFieldCommand(Command command){
-      return ((StringType) command).toString();
-    }
-
-    public boolean setPureDirectCommand(Command command) {
-      return ((OnOffType) command) == OnOffType.ON;
-    }
-
-    public boolean setClearAudioCommand(Command command){
-      return ((OnOffType) command) == OnOffType.ON;
-    }
-
-    public String setRadioStationCommand(int currentRadioStation){
-      return "radio:fm?contentId=" + currentRadioStation;
-    }
 
     @Override
     public void initialize() {

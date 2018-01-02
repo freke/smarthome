@@ -26,6 +26,7 @@
 		<description>Select the Sound Field for the receiver</description>
 		<state>
 			<options>
+				<option value="clearAudio">ClearAudio+</option>
 				<option value="hiphop">R&amp;B / HIP HOP</option>
 				<option value="standard">FLAT</option>
 				<option value="rock">ROCK</option>
@@ -38,13 +39,6 @@
 		</state>
 	</channel-type>
 
-	<channel-type id="clear-audio">
-		<item-type>Switch</item-type>
-		<label>ClearAudio+</label>
-		<description>Turn ClearAudio+ on/off on the device</description>
-		<category>Switch</category>
-	</channel-type>
-
 	<!-- SRS-ZR5 Thing Type -->
 	<thing-type id="SRS-ZR5">
 		<label>SONY wirelesspeaker SRS-ZR5</label>
@@ -55,7 +49,6 @@
 			<channel id="volume" typeId="volume" />
 			<channel id="mute" typeId="mute" />
 			<channel id="soundField" typeId="sound-field-zr5" />
-			<channel id="clearAudio" typeId="clear-audio" />
 		</channels>
 		<config-description-ref uri="thing-type:sonyaudio:config" />
 	</thing-type>
