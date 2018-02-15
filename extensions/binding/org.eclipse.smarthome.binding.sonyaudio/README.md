@@ -4,9 +4,15 @@ This binding integrates the [Sony Audio system](http://www.sony.com).
 
 ## Supported Things
 
-For the moment only Sony STR-1080, HT-CT800 and SRS-ZR5 devices are supported by this binding.
+For the moment the devices that are supported by this binding are
+ * STR-1080
+ * HT-CT800
+ * SRS-ZR5
+ * HT-ST5000
+ * HT-MT500
 
-When being defined in a \*.things file, the specific thing types STR-DN1080, HT-CT800 and SRS-ZR5 should be used.
+When being defined in a \*.things file, the specific thing types
+STR-DN1080, HT-ST5000, HT-CT800, HT-MT500 and SRS-ZR5 should be used.
 
 Please note that these thing types are case sensitive (you need to define them in upper case).
 

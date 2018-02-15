@@ -483,7 +483,7 @@ public class SonyAudioHandler extends BaseThingHandler implements SonyAudioEvent
             return;
         }
 
-        refreshJob = scheduler.scheduleAtFixedRate(() -> {
+        refreshJob = scheduler.scheduleWithFixedDelay(() -> {
             try {
                 List<Channel> channels = getThing().getChannels();
                 for (Channel channel : channels) {

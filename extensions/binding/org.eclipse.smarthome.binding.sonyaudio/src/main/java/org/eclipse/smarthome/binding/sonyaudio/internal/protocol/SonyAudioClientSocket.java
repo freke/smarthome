@@ -212,7 +212,7 @@ public class SonyAudioClientSocket {
                 logger.debug("callMethod returns {}", commandResponse.toString());
                 return commandResponse.get("result");
             } else {
-                logger.error("Timeout during callMethod({}, {})", method.method);
+                logger.error("Timeout during callMethod({}, {})", method.method, message);
                 throw new IOException("Timeout during callMethod");
             }
         } catch (Exception e) {
