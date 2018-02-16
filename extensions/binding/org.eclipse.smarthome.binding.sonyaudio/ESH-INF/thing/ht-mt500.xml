@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <thing:thing-descriptions bindingId="sonyaudio"
-							xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-							xmlns:thing="http://eclipse.org/smarthome/schemas/thing-description/v1.0.0"
-							xsi:schemaLocation="http://eclipse.org/smarthome/schemas/thing-description/v1.0.0 http://eclipse.org/smarthome/schemas/thing-description-1.0.0.xsd">
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:thing="http://eclipse.org/smarthome/schemas/thing-description/v1.0.0"
+	xsi:schemaLocation="http://eclipse.org/smarthome/schemas/thing-description/v1.0.0 http://eclipse.org/smarthome/schemas/thing-description-1.0.0.xsd">
 
 	<!-- Commands -->
 	<channel-type id="input-mt500">
@@ -10,42 +10,42 @@
 		<label>Input Source</label>
 		<description>Select the input source of the reciever</description>
 		<state>
-				<options>
-						<option value="extInput:btAudio">Bluetooth Audio</option>
-						<option value="extInput:tv">TV</option>
-						<option value="extInput:line">Analog</option>
-						<option value="storage:usb1">USB</option>
-						<option value="dlna:music">Home Network</option>
-				</options>
+			<options>
+				<option value="extInput:btAudio">Bluetooth Audio</option>
+				<option value="extInput:tv">TV</option>
+				<option value="extInput:line">Analog</option>
+				<option value="storage:usb1">USB</option>
+				<option value="dlna:music">Home Network</option>
+			</options>
 		</state>
 	</channel-type>
 
 	<channel-type id="sound-field-mt500">
-			<item-type>String</item-type>
-			<label>Sound Field</label>
-			<description>Select the Sound Field for the receiver</description>
-			<state>
-					<options>
-							<option value="clearAudio">ClearAudio+</option>
-							<option value="movie">Movie</option>
-							<option value="music">Music</option>
-							<option value="sports">Sports</option>
-							<option value="game">Game Studio</option>
-							<option value="standard">Standard</option>
-					</options>
-			</state>
+		<item-type>String</item-type>
+		<label>Sound Field</label>
+		<description>Select the Sound Field for the receiver</description>
+		<state>
+			<options>
+				<option value="clearAudio">ClearAudio+</option>
+				<option value="movie">Movie</option>
+				<option value="music">Music</option>
+				<option value="sports">Sports</option>
+				<option value="game">Game Studio</option>
+				<option value="standard">Standard</option>
+			</options>
+		</state>
 	</channel-type>
 
 	<!-- HT-MT500 Thing Type -->
 	<thing-type id="HT-MT500">
-		<label>SONY soundbar HT-MT500</label>
-		<description>SONY soundbar HT-MT500</description>
+		<label>SONY Soundbar HT-MT500</label>
+		<description>SONY Soundbar HT-MT500</description>
 		<channels>
-				<channel id="power" typeId="power" />
-				<channel id="input" typeId="input-mt500" />
-				<channel id="volume" typeId="volume" />
-				<channel id="mute" typeId="mute" />
-				<channel id="soundField" typeId="sound-field-mt500" />
+			<channel id="power" typeId="power" />
+			<channel id="input" typeId="input-mt500" />
+			<channel id="volume" typeId="volume" />
+			<channel id="mute" typeId="mute" />
+			<channel id="soundField" typeId="sound-field-mt500" />
 		</channels>
 		<config-description-ref uri="thing-type:sonyaudio:config" />
 	</thing-type>
