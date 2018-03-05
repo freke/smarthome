@@ -11,11 +11,11 @@
 		<description>Select the input source of the reciever</description>
 		<state>
 			<options>
-				<option value="extInput:btAudio">Bluetooth Audio</option>
-				<option value="extInput:tv">TV</option>
-				<option value="extInput:line">Analog</option>
-				<option value="storage:usb1">USB</option>
-				<option value="dlna:music">Home Network</option>
+				<option value="btAudio">Bluetooth Audio</option>
+				<option value="tv">TV</option>
+				<option value="analog">Analog</option>
+				<option value="usb">USB</option>
+				<option value="network">Home Network</option>
 			</options>
 		</state>
 	</channel-type>
