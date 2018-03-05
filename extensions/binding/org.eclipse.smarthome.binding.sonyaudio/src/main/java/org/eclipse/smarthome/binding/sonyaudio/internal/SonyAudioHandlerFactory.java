@@ -12,13 +12,22 @@
  */
 package org.eclipse.smarthome.binding.sonyaudio.internal;
 
-import static org.eclipse.smarthome.binding.sonyaudio.SonyAudioBindingConstants.SUPPORTED_THING_TYPES_UIDS;
+import org.eclipse.smarthome.binding.sonyaudio.SonyAudioBindingConstants;
 
-import org.eclipse.smarthome.binding.sonyaudio.handler.SonyAudioHandler;
+import org.eclipse.smarthome.binding.sonyaudio.handler.StrDn1080Handler;
+import org.eclipse.smarthome.binding.sonyaudio.handler.HtCt800Handler;
+import org.eclipse.smarthome.binding.sonyaudio.handler.HtSt5000Handler;
+import org.eclipse.smarthome.binding.sonyaudio.handler.HtMt500Handler;
+import org.eclipse.smarthome.binding.sonyaudio.handler.SrsZr5Handler;
+import org.eclipse.smarthome.config.core.Configuration;
 import org.eclipse.smarthome.core.thing.Thing;
 import org.eclipse.smarthome.core.thing.ThingTypeUID;
+import org.eclipse.smarthome.core.thing.ThingUID;
 import org.eclipse.smarthome.core.thing.binding.BaseThingHandlerFactory;
 import org.eclipse.smarthome.core.thing.binding.ThingHandler;
+import org.eclipse.smarthome.core.thing.binding.ThingHandlerFactory;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.ConfigurationPolicy;
 
 /**
  * The {@link SonyAudioHandlerFactory} is responsible for creating things and thing
@@ -26,21 +35,25 @@ import org.eclipse.smarthome.core.thing.binding.ThingHandler;
  *
  * @author David - Initial contribution
  */
+@Component(service = ThingHandlerFactory.class, immediate = true, configurationPid = "binding.sonyaudio", configurationPolicy = ConfigurationPolicy.OPTIONAL)
 public class SonyAudioHandlerFactory extends BaseThingHandlerFactory {
 
     @Override
     public boolean supportsThingType(ThingTypeUID thingTypeUID) {
-        return SUPPORTED_THING_TYPES_UIDS.contains(thingTypeUID);
+        return SonyAudioBindingConstants.SUPPORTED_THING_TYPES_UIDS.contains(thingTypeUID);
     }
 
     @Override
     protected ThingHandler createHandler(Thing thing) {
         ThingTypeUID thingTypeUID = thing.getThingTypeUID();
 
-        if (supportsThingType(thingTypeUID)) {
-            return new SonyAudioHandler(thing);
+        switch(thingTypeUID.getId()){
+          case SonyAudioBindingConstants.SONY_TYPE_STRDN1080: return new StrDn1080Handler(thing);
+          case SonyAudioBindingConstants.SONY_TYPE_HTCT800: return new HtCt800Handler(thing);
+          case SonyAudioBindingConstants.SONY_TYPE_HTST5000: return new HtSt5000Handler(thing);
+          case SonyAudioBindingConstants.SONY_TYPE_HTMT500: return new HtMt500Handler(thing);
+          case SonyAudioBindingConstants.SONY_TYPE_SRSZR5: return new SrsZr5Handler(thing);
+          default: return null;
         }
-
-        return null;
     }
 }

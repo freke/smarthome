@@ -82,17 +82,17 @@
 		<description>Select the input source of the receiver</description>
 		<state>
 			<options>
-				<option value="extInput:btAudio">Bluetooth Audio</option>
-				<option value="radio:fm">FM</option>
-				<option value="storage:usb1">USB</option>
-				<option value="extInput:bd-dvd">BD/DVD</option>
-				<option value="extInput:game">GAME</option>
-				<option value="extInput:sat-catv">SAT/CATV</option>
-				<option value="extInput:video?port=1">VIDEO 1</option>
-				<option value="extInput:video?port=2">VIDEO 2</option>
-				<option value="extInput:tv">TV</option>
-				<option value="extInput:sacd-cd">SA-CD/CD</option>
-				<option value="dlna:music">Home Network</option>
+				<option value="btAudio">Bluetooth Audio</option>
+				<option value="fm">FM</option>
+				<option value="usb">USB</option>
+				<option value="bd/dvd">BD/DVD</option>
+				<option value="game">GAME</option>
+				<option value="sat/catv">SAT/CATV</option>
+				<option value="video1">VIDEO 1</option>
+				<option value="video2">VIDEO 2</option>
+				<option value="tv">TV</option>
+				<option value="sa-cd/cd">SA-CD/CD</option>
+				<option value="network">Home Network</option>
 			</options>
 		</state>
 	</channel-type>
@@ -103,14 +103,14 @@
 		<description>Select the input source of the reciever</description>
 		<state>
 			<options>
-				<option value="extInput:btAudio">Bluetooth Audio</option>
-				<option value="radio:fm">FM</option>
-				<option value="storage:usb1">USB</option>
-				<option value="extInput:source">SOURCE</option>
-				<option value="extInput:sat-catv">SAT/CATV</option>
-				<option value="extInput:video?port=1">VIDEO 1</option>
-				<option value="extInput:sacd-cd">SA-CD/CD</option>
-				<option value="dlna:music">Home Network</option>
+				<option value="btAudio">Bluetooth Audio</option>
+				<option value="fm">FM</option>
+				<option value="usb">USB</option>
+				<option value="source">SOURCE</option>
+				<option value="sat/catv">SAT/CATV</option>
+				<option value="video1">VIDEO 1</option>
+				<option value="sa-cd/cd">SA-CD/CD</option>
+				<option value="network">Home Network</option>
 			</options>
 		</state>
 	</channel-type>
@@ -121,11 +121,11 @@
 		<description>Select the input source of the reciever</description>
 		<state>
 			<options>
-				<option value="extInput:bd-dvd">BD/DVD</option>
-				<option value="extInput:game">GAME</option>
-				<option value="extInput:sat-catv">SAT/CATV</option>
-				<option value="extInput:video?port=2">VIDEO 2</option>
-				<option value="extInput:sacd-cd">SA-CD/CD</option>
+				<option value="bd/dvd">BD/DVD</option>
+				<option value="game">GAME</option>
+				<option value="sat/catv">SAT/CATV</option>
+				<option value="video2">VIDEO 2</option>
+				<option value="sa-cd/cd">SA-CD/CD</option>
 			</options>
 		</state>
 	</channel-type>
