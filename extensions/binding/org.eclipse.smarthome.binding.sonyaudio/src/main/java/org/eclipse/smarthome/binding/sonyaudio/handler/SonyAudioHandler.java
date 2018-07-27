@@ -52,7 +52,6 @@ abstract class SonyAudioHandler extends BaseThingHandler implements SonyAudioEve
     private final Logger logger = LoggerFactory.getLogger(SonyAudioHandler.class);
 
     protected SonyAudioConnection connection;
-´
     private ScheduledFuture<?> connectionCheckerFuture;
     private ScheduledFuture<?> refreshJob;
 

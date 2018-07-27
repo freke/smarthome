@@ -99,7 +99,7 @@
 	<channel-type id="input-dn1080-zone2">
 		<item-type>String</item-type>
 		<label>Input Source</label>
-		<description>Select the input source of the reciever</description>
+		<description>Select the input source of the receiver</description>
 		<state>
 			<options>
 				<option value="btAudio">Bluetooth Audio</option>
@@ -117,7 +117,7 @@
 	<channel-type id="input-dn1080-zone4">
 		<item-type>String</item-type>
 		<label>Input Source</label>
-		<description>Select the input source of the reciever</description>
+		<description>Select the input source of the receiver</description>
 		<state>
 			<options>
 				<option value="bd/dvd">BD/DVD</option>
@@ -151,8 +151,8 @@
 
 	<!-- STR-DN1080 Thing Type -->
 	<thing-type id="STR-DN1080">
-		<label>SONY reciever STR-DN1080</label>
-		<description>SONY reciever STR-DN1080</description>
+		<label>SONY receiver STR-DN1080</label>
+		<description>SONY receiver STR-DN1080</description>
 
 		<channel-groups>
 			<channel-group typeId="masterControls" id="master" />

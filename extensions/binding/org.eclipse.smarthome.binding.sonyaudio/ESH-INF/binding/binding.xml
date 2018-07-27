@@ -5,7 +5,7 @@
 	xsi:schemaLocation="http://eclipse.org/smarthome/schemas/binding/v1.0.0 http://eclipse.org/smarthome/schemas/binding-1.0.0.xsd">
 
 	<name>SonyAudio Binding</name>
-	<description>This is the binding for SonyAudio products (Receivers and wirelesspeakers).</description>
+	<description>This is the binding for SonyAudio products (Receivers and wireless speakers).</description>
 	<author>David Åberg</author>
 
 </binding:binding>

@@ -270,7 +270,7 @@ public class SonyAudioConnection implements SonyAudioClientSocketEventListener {
             String powerStatus = element.getAsJsonArray().get(0).getAsJsonObject().get("status").getAsString();
             return powerStatus.equalsIgnoreCase("active") ? true : false;
         }
-        throw new IOException("Unexpected responces");
+        throw new IOException("Unexpected responses");
     }
 
     public boolean getPower(int zone) throws IOException {
@@ -287,7 +287,7 @@ public class SonyAudioConnection implements SonyAudioClientSocketEventListener {
                 }
             }
         }
-        throw new IOException("Unexpected responces");
+        throw new IOException("Unexpected responses");
     }
 
     public void setPower(boolean power) throws IOException {
@@ -321,7 +321,7 @@ public class SonyAudioConnection implements SonyAudioClientSocketEventListener {
             checkRadioPreset(uri);
             return uri;
         }
-        throw new IOException("Unexpected responces");
+        throw new IOException("Unexpected responses");
     }
 
     public void setInput(String input) throws IOException {
@@ -346,7 +346,7 @@ public class SonyAudioConnection implements SonyAudioClientSocketEventListener {
             }
             return 0;
         }
-        throw new IOException("Unexpected responces");
+        throw new IOException("Unexpected responses");
     }
 
     public void radioSeekFwd() throws IOException {
@@ -387,7 +387,7 @@ public class SonyAudioConnection implements SonyAudioClientSocketEventListener {
             }
             return vol;
         }
-        throw new IOException("Unexpected responces");
+        throw new IOException("Unexpected responses");
     }
 
     public void setVolume(int volume) throws IOException {
@@ -420,7 +420,7 @@ public class SonyAudioConnection implements SonyAudioClientSocketEventListener {
             String mute = result.get("mute").getAsString();
             return mute.equalsIgnoreCase("on") ? true : false;
         }
-        throw new IOException("Unexpected responces");
+        throw new IOException("Unexpected responses");
     }
 
     public void setMute(boolean mute) throws IOException {
@@ -445,7 +445,7 @@ public class SonyAudioConnection implements SonyAudioClientSocketEventListener {
             return item.get("currentValue").getAsString();
         }
       }
-      throw new IOException("Unexpected responces");
+      throw new IOException("Unexpected responses");
     }
 
     public void setSoundField(String soundField) throws IOException {
@@ -465,7 +465,7 @@ public class SonyAudioConnection implements SonyAudioClientSocketEventListener {
               return item.get("currentValue").getAsString().equalsIgnoreCase("on") ? true : false;
           }
         }
-        throw new IOException("Unexpected responces");
+        throw new IOException("Unexpected responses");
     }
 
     public void setPureDirect(boolean pureDirect) throws IOException {
@@ -485,7 +485,7 @@ public class SonyAudioConnection implements SonyAudioClientSocketEventListener {
               return item.get("currentValue").getAsString().equalsIgnoreCase("on") ? true : false;
           }
         }
-        throw new IOException("Unexpected responces");
+        throw new IOException("Unexpected responses");
     }
 
     public void setClearAudio(boolean clearAudio) throws IOException {
