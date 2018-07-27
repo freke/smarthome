@@ -8,7 +8,7 @@
 	<channel-type id="input-mt500">
 		<item-type>String</item-type>
 		<label>Input Source</label>
-		<description>Select the input source of the reciever</description>
+		<description>Select the input source of the receiver</description>
 		<state>
 			<options>
 				<option value="btAudio">Bluetooth Audio</option>
