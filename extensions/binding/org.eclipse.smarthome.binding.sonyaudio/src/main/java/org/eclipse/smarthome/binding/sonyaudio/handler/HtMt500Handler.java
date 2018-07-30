@@ -29,14 +29,14 @@ public class HtMt500Handler extends SonyAudioHandler {
 
   @Override
   public String setInputCommand(Command command){
-    switch(((StringType) command).toString().toLowerCase()){
+    switch(command.toString().toLowerCase()){
       case "btaudio": return "extInput:btAudio";
       case "tv": return "extInput:tv";
       case "analog": return "extInput:line";
       case "usb": return "storage:usb1";
       case "network": return "dlna:music";
     }
-    return ((StringType) command).toString();
+    return command.toString();
   }
 
   @Override

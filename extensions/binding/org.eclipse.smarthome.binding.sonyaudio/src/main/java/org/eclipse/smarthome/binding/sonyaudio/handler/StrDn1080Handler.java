@@ -34,7 +34,7 @@ public class StrDn1080Handler extends SonyAudioHandler {
 
   @Override
   public String setInputCommand(Command command){
-    switch(((StringType) command).toString().toLowerCase()){
+    switch(command.toString().toLowerCase()){
       case "btaudio": return "extInput:btAudio";
       case "fm": return "radio:fm";
       case "usb": return "storage:usb1";
@@ -48,7 +48,7 @@ public class StrDn1080Handler extends SonyAudioHandler {
       case "network": return "dlna:music";
       case "source": return "extInput:source";
     }
-    return ((StringType) command).toString();
+    return command.toString();
   }
 
   @Override
