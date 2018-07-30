@@ -27,15 +27,11 @@ import com.google.common.collect.ImmutableSet;
 public class SonyAudioBindingConstants {
 
     private static final String BINDING_ID = "sonyaudio";
-
+    
     public static final String SONY_TYPE_STRDN1080 = "STR-DN1080";
-
     public static final String SONY_TYPE_HTCT800 = "HT-CT800";
-
     public static final String SONY_TYPE_HTST5000 = "HT-ST5000";
-
     public static final String SONY_TYPE_HTMT500 = "HT-MT500";
-
     public static final String SONY_TYPE_SRSZR5 = "SRS-ZR5";
 
     public static final Set<String> SUPPORTED_DEVICE_MODELS = ImmutableSet.of(SONY_TYPE_STRDN1080, SONY_TYPE_HTCT800,
