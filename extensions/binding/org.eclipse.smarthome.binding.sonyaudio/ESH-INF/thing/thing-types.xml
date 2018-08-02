@@ -16,7 +16,7 @@
 		<label>Volume</label>
 		<description>Set the volume level</description>
 		<category>SoundVolume</category>
-		<state pattern="%.1f %%"></state>
+		<state min="0" max="100" step="1" pattern="%d %%"></state>
 	</channel-type>
 
 	<channel-type id="mute">

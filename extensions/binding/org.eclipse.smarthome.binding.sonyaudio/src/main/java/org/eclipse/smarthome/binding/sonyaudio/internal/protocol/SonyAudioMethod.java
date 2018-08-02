@@ -215,10 +215,20 @@ class SetAudioVolume extends SonyAudioMethod {
             volume = Long.toString(new_volume);
         }
 
+        Param(String volume_change) {
+            volume = volume_change;
+        }
+
         Param(long new_volume, int zone) {
             volume = Long.toString(new_volume);
             output = "extOutput:zone?zone=" + Integer.toString(zone);
         }
+
+        Param(String volume_change, int zone) {
+            volume = volume_change;
+            output = "extOutput:zone?zone=" + Integer.toString(zone);
+        }
+
     }
 
     SetAudioVolume(int volume, int min, int max) {
@@ -231,6 +241,16 @@ class SetAudioVolume extends SonyAudioMethod {
         super("setAudioVolume", "1.1");
         long scaled_volume = scaleVolume(volume, min, max);
         params = new Param[] { new Param(scaled_volume, zone) };
+    }
+
+    SetAudioVolume(String volume_change) {
+        super("setAudioVolume", "1.1");
+        params = new Param[] { new Param(volume_change) };
+    }
+
+    SetAudioVolume(int zone, String volume_change) {
+        super("setAudioVolume", "1.1");
+        params = new Param[] { new Param(volume_change, zone) };
     }
 
     long scaleVolume(int volume, int min, int max) {

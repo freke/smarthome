@@ -121,10 +121,9 @@ public class SonyAudioDiscoveryParticipant implements UpnpDiscoveryParticipant {
 
     private Map<String, Object> getDescription(String host, int port, String path) throws IOException {
         Map<String, Object> properties = new HashMap<>(2, 1);
-        try {
-            URL url = new URL("http", host, port, path);
-            logger.debug("URL: {}", url.toString());
-            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(url.openStream()));
+        URL url = new URL("http", host, port, path);
+        logger.debug("URL: {}", url.toString());
+        try (BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(url.openStream()))) {
             String s;
             StringBuilder builder = new StringBuilder();
             while ((s = bufferedReader.readLine()) != null) {
@@ -145,8 +144,6 @@ public class SonyAudioDiscoveryParticipant implements UpnpDiscoveryParticipant {
                 properties.put(SonyAudioBindingConstants.SCALAR_PATH_PARAMETER, scalar_path);
             }
             return properties;
-        } catch (IOException e) {
-            throw e;
         }
     }
 }

@@ -17,7 +17,7 @@ import java.net.URI;
 import com.google.gson.JsonObject;
 
 /**
- * The {@link SonyAudioClientSocketEventListener} socket evet listener
+ * The {@link SonyAudioClientSocketEventListener} socket event listener
  * handlers.
  *
  * @author David Åberg - Initial contribution

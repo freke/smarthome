@@ -30,6 +30,8 @@ import org.eclipse.smarthome.config.core.Configuration;
 import org.eclipse.smarthome.core.library.types.DecimalType;
 import org.eclipse.smarthome.core.library.types.OnOffType;
 import org.eclipse.smarthome.core.library.types.StringType;
+import org.eclipse.smarthome.core.library.types.PercentType;
+import org.eclipse.smarthome.core.library.types.IncreaseDecreaseType;
 import org.eclipse.smarthome.core.thing.Channel;
 import org.eclipse.smarthome.core.thing.ChannelUID;
 import org.eclipse.smarthome.core.thing.Thing;
@@ -195,8 +197,8 @@ abstract class SonyAudioHandler extends BaseThingHandler implements SonyAudioEve
 
     public void handleInputCommand(Command command, ChannelUID channelUID, int zone) throws IOException {
         if (command instanceof RefreshType) {
-            input_zone.put(zone,connection.getInput(zone));
-            updateState(channelUID, new StringType(input_zone.get(zone)));
+            input_zone.put(zone, connection.getInput(zone));
+            updateState(channelUID, inputSource(input_zone.get(zone)));
         }
         if (command instanceof StringType) {
             connection.setInput(setInputCommand(command), zone);
@@ -205,19 +207,33 @@ abstract class SonyAudioHandler extends BaseThingHandler implements SonyAudioEve
 
     public void handleVolumeCommand(Command command, ChannelUID channelUID) throws IOException {
         if (command instanceof RefreshType) {
-            updateState(channelUID, new DecimalType(connection.getVolume() / 100.0));
+            updateState(channelUID, new PercentType(connection.getVolume()));
         }
-        if (command instanceof DecimalType) {
-            connection.setVolume(((DecimalType) command).intValue());
+        if (command instanceof PercentType) {
+            connection.setVolume(((PercentType) command).intValue());
+        }
+        if (command instanceof IncreaseDecreaseType) {
+            String change = command == IncreaseDecreaseType.INCREASE ? "+1" : "-1";
+            connection.setVolume(change);
+        }
+        if (command instanceof OnOffType) {
+            connection.setMute(((OnOffType) command) == OnOffType.ON);
         }
     }
 
     public void handleVolumeCommand(Command command, ChannelUID channelUID, int zone) throws IOException {
         if (command instanceof RefreshType) {
-            updateState(channelUID, new DecimalType(connection.getVolume(zone) / 100.0));
+            updateState(channelUID, new PercentType(connection.getVolume(zone)));
         }
-        if (command instanceof DecimalType) {
-            connection.setVolume(((DecimalType) command).intValue(), zone);
+        if (command instanceof PercentType) {
+            connection.setVolume(((PercentType) command).intValue(), zone);
+        }
+        if (command instanceof IncreaseDecreaseType) {
+            String change = command == IncreaseDecreaseType.INCREASE ? "+1" : "-1";
+            connection.setVolume(change, zone);
+        }
+        if (command instanceof OnOffType) {
+            connection.setMute(((OnOffType) command) == OnOffType.ON, zone);
         }
     }
 
@@ -286,10 +302,10 @@ abstract class SonyAudioHandler extends BaseThingHandler implements SonyAudioEve
         String ipAddress = (String) config.get(SonyAudioBindingConstants.HOST_PARAMETER);
         String path = (String) config.get(SonyAudioBindingConstants.SCALAR_PATH_PARAMETER);
         Object port_o = config.get(SonyAudioBindingConstants.SCALAR_PORT_PARAMETER);
-        int port;
+        int port = 10000;
         if (port_o instanceof BigDecimal) {
             port = ((BigDecimal) port_o).intValue();
-        } else {
+        } else if (port_o instanceof Integer) {
             port = (int) port_o;
         }
 
@@ -312,12 +328,12 @@ abstract class SonyAudioHandler extends BaseThingHandler implements SonyAudioEve
                 public void run() {
                     try {
                         if (!connection.checkConnection()) {
-                            updateStatus(ThingStatus.OFFLINE);
+                            if(getThing().getStatusInfo().getStatus() != ThingStatus.OFFLINE) {
+                                updateStatus(ThingStatus.OFFLINE);
+                            }
                         }
                     } catch (Exception ex) {
-                        logger.warn("Exception in check connection to @{}. Cause: {}", connection.getConnectionName(),
-                                ex.getMessage());
-
+                        logger.warn("Exception in check connection to @{}. Cause: {}", connection.getConnectionName(), ex.getMessage(), ex);
                     }
                 }
             };
@@ -325,7 +341,7 @@ abstract class SonyAudioHandler extends BaseThingHandler implements SonyAudioEve
 
             // Start the status updater
             startAutomaticRefresh(refresh);
-        } catch (Exception e) {
+        } catch (IOException e) {
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR, e.getMessage());
         }
     }
@@ -396,19 +412,19 @@ abstract class SonyAudioHandler extends BaseThingHandler implements SonyAudioEve
     public void updateVolume(int zone, int volume) {
         switch (zone) {
             case 0:
-                updateState(SonyAudioBindingConstants.CHANNEL_VOLUME, new DecimalType(volume / 100.0));
+                updateState(SonyAudioBindingConstants.CHANNEL_VOLUME, new PercentType(volume));
                 break;
             case 1:
-                updateState(SonyAudioBindingConstants.CHANNEL_ZONE1_VOLUME, new DecimalType(volume / 100.0));
+                updateState(SonyAudioBindingConstants.CHANNEL_ZONE1_VOLUME, new PercentType(volume));
                 break;
             case 2:
-                updateState(SonyAudioBindingConstants.CHANNEL_ZONE2_VOLUME, new DecimalType(volume / 100.0));
+                updateState(SonyAudioBindingConstants.CHANNEL_ZONE2_VOLUME, new PercentType(volume));
                 break;
             case 3:
-                updateState(SonyAudioBindingConstants.CHANNEL_ZONE3_VOLUME, new DecimalType(volume / 100.0));
+                updateState(SonyAudioBindingConstants.CHANNEL_ZONE3_VOLUME, new PercentType(volume));
                 break;
             case 4:
-                updateState(SonyAudioBindingConstants.CHANNEL_ZONE4_VOLUME, new DecimalType(volume / 100.0));
+                updateState(SonyAudioBindingConstants.CHANNEL_ZONE4_VOLUME, new PercentType(volume));
                 break;
         }
     }
@@ -461,14 +477,11 @@ abstract class SonyAudioHandler extends BaseThingHandler implements SonyAudioEve
         }
 
         refreshJob = scheduler.scheduleWithFixedDelay(() -> {
-            try {
-                List<Channel> channels = getThing().getChannels();
-                for (Channel channel : channels) {
-                    handleCommand(channel.getUID(), RefreshType.REFRESH);
-                }
-            } catch (Exception e) {
-                logger.debug("Exception occurred during execution: {}", e.getMessage(), e);
-                updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.OFFLINE.COMMUNICATION_ERROR, e.getMessage());
+            List<Channel> channels = getThing().getChannels();
+            for (Channel channel : channels) {
+                if(isLinked(channel.getUID()))
+                    continue;
+                handleCommand(channel.getUID(), RefreshType.REFRESH);
             }
         }, 5, refresh, TimeUnit.SECONDS);
     }
