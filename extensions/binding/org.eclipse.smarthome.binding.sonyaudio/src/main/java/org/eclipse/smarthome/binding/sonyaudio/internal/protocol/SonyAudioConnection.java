@@ -20,6 +20,7 @@ import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -240,18 +241,8 @@ public class SonyAudioConnection implements SonyAudioClientSocketEventListener {
     private boolean checkConnection(SonyAudioClientSocket socket) {
         if (!socket.isConnected()) {
             logger.debug("checkConnection: try to connect to {}", socket.getURI().toString());
-            //try {
-                socket.open();
-                return socket.isConnected();
-            /*} catch (Throwable t) {
-                logger.debug("exception during connect to {}", socket.getURI(), t);
-                try {
-                    socket.close();
-                } catch (Exception e) {
-                  logger.debug("Problem closing socket")
-                }
-                return false;
-            }*/
+            socket.open();
+            return socket.isConnected();
         }
         return true;
     }
@@ -391,6 +382,32 @@ public class SonyAudioConnection implements SonyAudioClientSocketEventListener {
         av_content_socket.callMethod(seekBroadcastStation);
     }
 
+    public void getVolume(CompletableFuture<Integer> volume_promise, CompletableFuture<Boolean> volume_mute_promise) throws IOException {
+        GetVolumeInformation getVolumeInformation = new GetVolumeInformation();
+
+        if(audio_socket == null || !audio_socket.isConnected()) {
+            throw new IOException("Audio Socket not connected");
+        }
+        JsonElement element = audio_socket.callMethod(getVolumeInformation);
+
+        if (!element.isJsonArray()) {
+            throw new IOException("Unexpected responses");
+        }
+        JsonObject result = element.getAsJsonArray().get(0).getAsJsonArray().get(0).getAsJsonObject();
+
+        int volume = result.get("volume").getAsInt();
+        min_volume = result.get("minVolume").getAsInt();
+        max_volume = result.get("maxVolume").getAsInt();
+        int vol = Math.round(100 * (volume - min_volume) / (max_volume - min_volume));
+        if (vol < 0) {
+            vol = 0;
+        }
+        volume_promise.complete(vol);
+
+        String mute = result.get("mute").getAsString();
+        volume_mute_promise.complete(mute.equalsIgnoreCase("on") ? true : false);
+    }
+/*
     public int getVolume() throws IOException {
         GetVolumeInformation getVolumeInformation = new GetVolumeInformation();
         return getVolume(getVolumeInformation);
@@ -402,11 +419,8 @@ public class SonyAudioConnection implements SonyAudioClientSocketEventListener {
     }
 
     private int getVolume(GetVolumeInformation getVolumeInformation) throws IOException {
-        if(audio_socket == null) {
+        if(audio_socket == null || !audio_socket.isConnected()) {
             throw new IOException("Audio Socket not connected");
-        }
-        if (!audio_socket.isConnected()) {
-            return 0;
         }
         JsonElement element = audio_socket.callMethod(getVolumeInformation);
 
@@ -424,7 +438,7 @@ public class SonyAudioConnection implements SonyAudioClientSocketEventListener {
         }
         throw new IOException("Unexpected responses");
     }
-
+*/
     public void setVolume(int volume) throws IOException {
         if(audio_socket == null) {
             throw new IOException("Audio Socket not connected");
@@ -456,7 +470,7 @@ public class SonyAudioConnection implements SonyAudioClientSocketEventListener {
         SetAudioVolume setAudioVolume = new SetAudioVolume(zone, volume_change);
         audio_socket.callMethod(setAudioVolume);
     }
-
+/*
     public boolean getMute() throws IOException {
         GetVolumeInformation getVolumeInformation = new GetVolumeInformation();
         return getMute(getVolumeInformation);
@@ -479,7 +493,7 @@ public class SonyAudioConnection implements SonyAudioClientSocketEventListener {
         }
         throw new IOException("Unexpected responses");
     }
-
+*/
     public void setMute(boolean mute) throws IOException {
         if(audio_socket == null) {
             throw new IOException("Audio Socket not connected");
