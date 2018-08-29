@@ -20,6 +20,8 @@ import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.regex.Matcher;
@@ -258,66 +260,71 @@ public class SonyAudioConnection implements SonyAudioClientSocketEventListener {
         return String.format("ws://%s:%d/%s", host, port, path);
     }
 
-    public boolean getPower() throws IOException {
-        if(system_socket == null) {
-            throw new IOException("System Socket not connected");
-        }
-        GetPowerStatus getPowerStatus = new GetPowerStatus();
-        JsonElement element = system_socket.callMethod(getPowerStatus);
+    public void getPower(CompletableFuture<Boolean> power_promise, int zone) throws IOException {
+        if(zone > 0) {
+            if(av_content_socket == null) {
+                throw new IOException("AvContent Socket not connected");
+            }
+            GetCurrentExternalTerminalsStatus getCurrentExternalTerminalsStatus = new GetCurrentExternalTerminalsStatus();
+            JsonElement element = av_content_socket.callMethod(getCurrentExternalTerminalsStatus);
 
-        if (element.isJsonArray()) {
-            String powerStatus = element.getAsJsonArray().get(0).getAsJsonObject().get("status").getAsString();
-            return powerStatus.equalsIgnoreCase("active") ? true : false;
-        }
-        throw new IOException("Unexpected responses");
-    }
-
-    public boolean getPower(int zone) throws IOException {
-        GetCurrentExternalTerminalsStatus getCurrentExternalTerminalsStatus = new GetCurrentExternalTerminalsStatus();
-        JsonElement element = av_content_socket.callMethod(getCurrentExternalTerminalsStatus);
-
-        if (element.isJsonArray()) {
-            Iterator<JsonElement> terminals = element.getAsJsonArray().get(0).getAsJsonArray().iterator();
-            while (terminals.hasNext()) {
-                JsonObject terminal = terminals.next().getAsJsonObject();
-                String uri = terminal.get("uri").getAsString();
-                if (uri.equalsIgnoreCase("extOutput:zone?zone=" + Integer.toString(zone))) {
-                    return terminal.get("active").getAsString().equalsIgnoreCase("active") ? true : false;
+            if (element.isJsonArray()) {
+                Iterator<JsonElement> terminals = element.getAsJsonArray().get(0).getAsJsonArray().iterator();
+                while (terminals.hasNext()) {
+                    JsonObject terminal = terminals.next().getAsJsonObject();
+                    String uri = terminal.get("uri").getAsString();
+                    if (uri.equalsIgnoreCase("extOutput:zone?zone=" + Integer.toString(zone))) {
+                        power_promise.complete(terminal.get("active").getAsString().equalsIgnoreCase("active") ? true : false);
+                    }
                 }
+            }
+        } else {
+            if(system_socket == null) {
+                throw new IOException("System Socket not connected");
+            }
+
+            GetPowerStatus getPowerStatus = new GetPowerStatus();
+            JsonElement element = system_socket.callMethod(getPowerStatus);
+
+            if (element.isJsonArray()) {
+                String powerStatus = element.getAsJsonArray().get(0).getAsJsonObject().get("status").getAsString();
+                power_promise.complete(powerStatus.equalsIgnoreCase("active") ? true : false);
             }
         }
         throw new IOException("Unexpected responses");
     }
 
     public void setPower(boolean power) throws IOException {
-        if(system_socket == null) {
-            throw new IOException("System Socket not connected");
-        }
-        SetPowerStatus setPowerStatus = new SetPowerStatus(power);
-        system_socket.callMethod(setPowerStatus);
+        setPower(power, 0);
     }
 
     public void setPower(boolean power, int zone) throws IOException {
-        if(av_content_socket == null) {
-            throw new IOException("AvContent Socket not connected");
+        if(zone > 0) {
+            if(av_content_socket == null) {
+                throw new IOException("AvContent Socket not connected");
+            }
+            SetActiveTerminal setActiveTerminal = new SetActiveTerminal(power, zone);
+            av_content_socket.callMethod(setActiveTerminal);
+        }else {
+            if(system_socket == null) {
+                throw new IOException("System Socket not connected");
+            }
+            SetPowerStatus setPowerStatus = new SetPowerStatus(power);
+            system_socket.callMethod(setPowerStatus);
         }
-        SetActiveTerminal setActiveTerminal = new SetActiveTerminal(power, zone);
-        av_content_socket.callMethod(setActiveTerminal);
     }
 
-    public String getInput() throws IOException {
+    public void getInput(CompletableFuture<String> input_promise, CompletableFuture<Integer> radio_freq_promise) throws IOException {
         GetPlayingContentInfo getPlayingContentInfo = new GetPlayingContentInfo();
-
-        return getInput(getPlayingContentInfo);
+        getInput(input_promise, radio_freq_promise, getPlayingContentInfo);
     }
 
-    public String getInput(int zone) throws IOException {
+    public void getInput(CompletableFuture<String> input_promise, CompletableFuture<Integer> radio_freq_promise, int zone) throws IOException {
         GetPlayingContentInfo getPlayingContentInfo = new GetPlayingContentInfo(zone);
-
-        return getInput(getPlayingContentInfo);
+        getInput(input_promise, radio_freq_promise, getPlayingContentInfo);
     }
 
-    private String getInput(GetPlayingContentInfo getPlayingContentInfo) throws IOException {
+    private String getInput(CompletableFuture<String> input_promise, CompletableFuture<Integer> radio_freq_promise, GetPlayingContentInfo getPlayingContentInfo) throws IOException {
         if(av_content_socket == null) {
             throw new IOException("AvContent Socket not connected");
         }
@@ -327,7 +334,12 @@ public class SonyAudioConnection implements SonyAudioClientSocketEventListener {
             JsonObject result = element.getAsJsonArray().get(0).getAsJsonArray().get(0).getAsJsonObject();
             String uri = result.get("uri").getAsString();
             checkRadioPreset(uri);
-            return uri;
+            input_promise.complete(uri);
+
+            if (result.has("broadcastFreq")) {
+                int freq = result.get("broadcastFreq").getAsInt();
+                radio_freq_promise.complete(freq);
+            }
         }
         throw new IOException("Unexpected responses");
     }
@@ -348,24 +360,6 @@ public class SonyAudioConnection implements SonyAudioClientSocketEventListener {
         av_content_socket.callMethod(setPlayContent);
     }
 
-    public int getRadioFreq() throws IOException {
-        if(av_content_socket == null) {
-            throw new IOException("AvContent Socket not connected");
-        }
-        GetPlayingContentInfo getPlayingContentInfo = new GetPlayingContentInfo();
-        JsonElement element = av_content_socket.callMethod(getPlayingContentInfo);
-
-        if (element.isJsonArray()) {
-            JsonObject result = element.getAsJsonArray().get(0).getAsJsonArray().get(0).getAsJsonObject();
-            if (result.has("broadcastFreq")) {
-                int freq = result.get("broadcastFreq").getAsInt();
-                return freq;
-            }
-            return 0;
-        }
-        throw new IOException("Unexpected responses");
-    }
-
     public void radioSeekFwd() throws IOException {
         if(av_content_socket == null) {
             throw new IOException("AvContent Socket not connected");
@@ -382,15 +376,15 @@ public class SonyAudioConnection implements SonyAudioClientSocketEventListener {
         av_content_socket.callMethod(seekBroadcastStation);
     }
 
-    public void getVolume(CompletableFuture<Integer> volume_promise, CompletableFuture<Boolean> volume_mute_promise) throws IOException {
-        GetVolumeInformation getVolumeInformation = new GetVolumeInformation();
+    public void getVolume(CompletableFuture<Integer> volume_promise, CompletableFuture<Boolean> volume_mute_promise, int zone) throws IOException {
+        GetVolumeInformation getVolumeInformation = new GetVolumeInformation(zone);
 
         if(audio_socket == null || !audio_socket.isConnected()) {
             throw new IOException("Audio Socket not connected");
         }
         JsonElement element = audio_socket.callMethod(getVolumeInformation);
 
-        if (!element.isJsonArray()) {
+        if (element == null || !element.isJsonArray()) {
             throw new IOException("Unexpected responses");
         }
         JsonObject result = element.getAsJsonArray().get(0).getAsJsonArray().get(0).getAsJsonObject();
@@ -407,38 +401,7 @@ public class SonyAudioConnection implements SonyAudioClientSocketEventListener {
         String mute = result.get("mute").getAsString();
         volume_mute_promise.complete(mute.equalsIgnoreCase("on") ? true : false);
     }
-/*
-    public int getVolume() throws IOException {
-        GetVolumeInformation getVolumeInformation = new GetVolumeInformation();
-        return getVolume(getVolumeInformation);
-    }
 
-    public int getVolume(int zone) throws IOException {
-        GetVolumeInformation getVolumeInformation = new GetVolumeInformation(zone);
-        return getVolume(getVolumeInformation);
-    }
-
-    private int getVolume(GetVolumeInformation getVolumeInformation) throws IOException {
-        if(audio_socket == null || !audio_socket.isConnected()) {
-            throw new IOException("Audio Socket not connected");
-        }
-        JsonElement element = audio_socket.callMethod(getVolumeInformation);
-
-        if (element.isJsonArray()) {
-            JsonObject result = element.getAsJsonArray().get(0).getAsJsonArray().get(0).getAsJsonObject();
-
-            int volume = result.get("volume").getAsInt();
-            min_volume = result.get("minVolume").getAsInt();
-            max_volume = result.get("maxVolume").getAsInt();
-            int vol = Math.round(100 * (volume - min_volume) / (max_volume - min_volume));
-            if (vol < 0) {
-                vol = 0;
-            }
-            return vol;
-        }
-        throw new IOException("Unexpected responses");
-    }
-*/
     public void setVolume(int volume) throws IOException {
         if(audio_socket == null) {
             throw new IOException("Audio Socket not connected");
@@ -470,30 +433,7 @@ public class SonyAudioConnection implements SonyAudioClientSocketEventListener {
         SetAudioVolume setAudioVolume = new SetAudioVolume(zone, volume_change);
         audio_socket.callMethod(setAudioVolume);
     }
-/*
-    public boolean getMute() throws IOException {
-        GetVolumeInformation getVolumeInformation = new GetVolumeInformation();
-        return getMute(getVolumeInformation);
-    }
 
-    public boolean getMute(int zone) throws IOException {
-        GetVolumeInformation getVolumeInformation = new GetVolumeInformation(zone);
-        return getMute(getVolumeInformation);
-    }
-
-    private boolean getMute(GetVolumeInformation getVolumeInformation) throws IOException {
-        if(audio_socket == null) {
-            throw new IOException("Audio Socket not connected");
-        }
-        JsonElement element = audio_socket.callMethod(getVolumeInformation);
-        if (element.isJsonArray()) {
-            JsonObject result = element.getAsJsonArray().get(0).getAsJsonArray().get(0).getAsJsonObject();
-            String mute = result.get("mute").getAsString();
-            return mute.equalsIgnoreCase("on") ? true : false;
-        }
-        throw new IOException("Unexpected responses");
-    }
-*/
     public void setMute(boolean mute) throws IOException {
         if(audio_socket == null) {
             throw new IOException("Audio Socket not connected");
@@ -510,81 +450,31 @@ public class SonyAudioConnection implements SonyAudioClientSocketEventListener {
         audio_socket.callMethod(setAudioMute);
     }
 
-    public String getSoundField() throws IOException {
+    public void getSoundSettings(CompletableFuture<Map<String,String>> sound_settings_promise) throws IOException {
         if(audio_socket == null) {
             throw new IOException("Audio Socket not connected");
         }
-        GetSoundField getSoundField = new GetSoundField();
-        JsonElement element = audio_socket.callMethod(getSoundField);
+        Map<String, String> m = new HashMap<String, String>();
 
-        if (element.isJsonArray()) {
-            Iterator<JsonElement> iterator = element.getAsJsonArray().get(0).getAsJsonArray().iterator();
-            while(iterator.hasNext()){
-                JsonObject item = iterator.next().getAsJsonObject();
-                if(item.get("target").getAsString().equalsIgnoreCase("soundField"))
-                    return item.get("currentValue").getAsString();
-            }
+        GetSoundSettings getSoundSettings = new GetSoundSettings();
+        JsonElement element = audio_socket.callMethod(getSoundSettings);
+
+        if (element == null || !element.isJsonArray()) {
+            throw new IOException("Unexpected responses");
         }
-        throw new IOException("Unexpected responses");
-    }
-
-    public void setSoundField(String soundField) throws IOException {
-        if(audio_socket == null) {
-            throw new IOException("Audio Socket not connected");
-        }
-        SetSoundField setSoundField = new SetSoundField(soundField);
-        audio_socket.callMethod(setSoundField);
-    }
-
-    public boolean getPureDirect() throws IOException {
-        if(audio_socket == null) {
-            throw new IOException("Audio Socket not connected");
-        }
-        GetPureDirect getPureDirect = new GetPureDirect();
-        JsonElement element = audio_socket.callMethod(getPureDirect);
-
-        if (element.isJsonArray()) {
-          Iterator<JsonElement> iterator = element.getAsJsonArray().get(0).getAsJsonArray().iterator();
-          while(iterator.hasNext()){
+        Iterator<JsonElement> iterator = element.getAsJsonArray().get(0).getAsJsonArray().iterator();
+        while(iterator.hasNext()){
             JsonObject item = iterator.next().getAsJsonObject();
-            if(item.get("target").getAsString().equalsIgnoreCase("pureDirect"))
-              return item.get("currentValue").getAsString().equalsIgnoreCase("on") ? true : false;
-          }
+
+            m.put(item.get("target").getAsString(),item.get("currentValue").getAsString());
         }
-        throw new IOException("Unexpected responses");
     }
 
-    public void setPureDirect(boolean pureDirect) throws IOException {
+    public void setSoundSettings(String target, String value) throws IOException {
         if(audio_socket == null) {
             throw new IOException("Audio Socket not connected");
         }
-        SetPureDirect setPureDirect = new SetPureDirect(pureDirect);
-        audio_socket.callMethod(setPureDirect);
-    }
-
-    public boolean getClearAudio() throws IOException {
-        if(audio_socket == null) {
-            throw new IOException("Audio Socket not connected");
-        }
-        GetClearAudio getClearAudio = new GetClearAudio();
-        JsonElement element = audio_socket.callMethod(getClearAudio);
-
-        if (element.isJsonArray()) {
-          Iterator<JsonElement> iterator = element.getAsJsonArray().get(0).getAsJsonArray().iterator();
-          while(iterator.hasNext()){
-            JsonObject item = iterator.next().getAsJsonObject();
-            if(item.get("target").getAsString().equalsIgnoreCase("clearAudio"))
-              return item.get("currentValue").getAsString().equalsIgnoreCase("on") ? true : false;
-          }
-        }
-        throw new IOException("Unexpected responses");
-    }
-
-    public void setClearAudio(boolean clearAudio) throws IOException {
-        if(audio_socket == null) {
-            throw new IOException("Audio Socket not connected");
-        }
-        SetClearAudio serClearAudio = new SetClearAudio(clearAudio);
-        audio_socket.callMethod(serClearAudio);
+        SetSoundSettings setSoundSettings = new SetSoundSettings(target, value);
+        audio_socket.callMethod(setSoundSettings);
     }
 }

@@ -14,6 +14,9 @@ package org.eclipse.smarthome.binding.sonyaudio.handler;
 
 import java.io.IOException;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.Map;
+
 import org.eclipse.smarthome.core.thing.Thing;
 import org.eclipse.smarthome.core.types.Command;
 import org.eclipse.smarthome.core.types.RefreshType;
@@ -66,19 +69,23 @@ public class SrsZr5Handler extends SonyAudioHandler {
     }
 
     @Override
-    public void handleSoundField(Command command, ChannelUID channelUID) throws IOException {
+    public void handleSoundSettings(Command command, ChannelUID channelUID) throws IOException {
         if (command instanceof RefreshType) {
-            if(connection.getClearAudio()){
-                updateState(channelUID, new StringType("clearAudio"));
-            } else {
-                updateState(channelUID, new StringType(connection.getSoundField()));
-            }
+            connection.getSoundSettings(sound_settings_promise);
+            CompletableFuture<Map<String,String>> result = sound_settings_cache.getValue(sound_settings_supplier);
+            result.thenAccept(newValue -> {
+                if(newValue.get("clearAudio").equalsIgnoreCase("on")){
+                    updateState(channelUID, new StringType("clearAudio"));
+                }else{
+                    updateState(channelUID, new StringType(newValue.get("soundField")));
+                }
+            });
         }
         if (command instanceof StringType) {
             if(((StringType) command).toString().equalsIgnoreCase("clearAudio")){
-                connection.setClearAudio(true);
-            } else {
-                connection.setSoundField(((StringType) command).toString());
+                connection.SetSoundSettings("clearAudio", "on");
+            }else{
+                connection.SetSoundSettings("soundField", ((StringType) command).toString());
             }
         }
     }

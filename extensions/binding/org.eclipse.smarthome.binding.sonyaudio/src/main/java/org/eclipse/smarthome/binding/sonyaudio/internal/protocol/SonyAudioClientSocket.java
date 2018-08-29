@@ -184,7 +184,7 @@ public class SonyAudioClientSocket {
 
     private void sendMessage(String str) throws IOException {
         if (isConnected()) {
-            logger.debug("send message: {}", str);
+            logger.debug("send message fo {}: {}", uri.toString(), str);
             session.getRemote().sendString(str);
         } else {
             throw new IOException("socket not initialized");
@@ -195,6 +195,7 @@ public class SonyAudioClientSocket {
         try {
             method.id = nextMessageId;
             String message = mapper.toJson(method);
+            logger.info("callMethod send {}", message);
 
             commandLatch = new CountDownLatch(1);
             commandResponse = null;
@@ -202,7 +203,7 @@ public class SonyAudioClientSocket {
 
             sendMessage(message);
             if (commandLatch.await(REQUEST_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
-                logger.debug("callMethod returns {}", commandResponse.toString());
+                logger.info("callMethod {} returns {}", uri.toString(), commandResponse.toString());
                 return commandResponse.get("result");
             } else {
                 logger.debug("Timeout during callMethod({}, {})", method.method, message);

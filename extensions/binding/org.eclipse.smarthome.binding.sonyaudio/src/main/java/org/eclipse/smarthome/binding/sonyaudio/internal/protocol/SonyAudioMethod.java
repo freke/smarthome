@@ -184,13 +184,14 @@ class GetVolumeInformation extends SonyAudioMethod {
         }
 
         Param(int zone) {
-            output = "extOutput:zone?zone=" + Integer.toString(zone);
+            if(zone > 0){
+              output = "extOutput:zone?zone=" + Integer.toString(zone);
+            }
         }
     }
 
     GetVolumeInformation() {
-        super("getVolumeInformation", "1.1");
-        params = new Param[] { new Param() };
+        this(0);
     }
 
     GetVolumeInformation(int zone) {
@@ -308,7 +309,8 @@ class GetSoundSettings extends SonyAudioMethod {
     }
 
     GetSoundSettings() {
-      super("getSoundSettings", "1.1");
+        super("getSoundSettings", "1.1");
+        params = new Param[] { new Param("") };
     }
 
     GetSoundSettings(String target) {
@@ -327,29 +329,6 @@ class GetSoundField extends GetSoundSettings {
         super("soundField");
     }
 }
-
-/**
- * The {@link GetPureDirect} SONY Audio control API method
- *
- * @author David Åberg - Initial contribution
- */
-class GetPureDirect extends GetSoundSettings {
-    GetPureDirect() {
-        super("pureDirect");
-    }
-}
-
-/**
- * The {@link GetClearAudio} SONY Audio control API method
- *
- * @author David Åberg - Initial contribution
- */
-class GetClearAudio extends GetSoundSettings {
-    GetClearAudio() {
-        super("clearAudio");
-    }
-}
-
 
 /**
  * Helper class

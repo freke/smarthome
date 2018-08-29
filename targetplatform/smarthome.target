@@ -190,7 +190,7 @@
 </location>
 <location includeAllPlatforms="false" includeConfigurePhase="false" includeMode="planner" includeSource="true" type="InstallableUnit">
 <unit id="com.neuronrobotics.nrjavaserial" version="0.0.0"/>
-<repository location="https://dl.bintray.com/openhab/p2/openhab-deps-repo/1.0.28"/>
+<repository location="http://dl.bintray.com/openhab/p2/openhab-deps-repo/1.0.28"/>
 </location>
 <location path="${project_loc:targetplatform}/third-party" type="Directory"/>
 </locations>
