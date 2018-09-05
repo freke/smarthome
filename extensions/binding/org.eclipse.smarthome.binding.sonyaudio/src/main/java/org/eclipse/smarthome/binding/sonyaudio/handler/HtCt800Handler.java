@@ -23,52 +23,52 @@ import org.eclipse.smarthome.core.library.types.StringType;
  */
 public class HtCt800Handler extends SonyAudioHandler {
 
-  public HtCt800Handler(Thing thing) {
-      super(thing);
-  }
+    public HtCt800Handler(Thing thing) {
+        super(thing);
+    }
 
-  @Override
-  public String setInputCommand(Command command){
-    switch(command.toString().toLowerCase()){
-      case "btaudio": return "extInput:btAudio";
-      case "tv": return "extInput:tv";
-      case "hdmi1": return "extInput:hdmi?port=1";
-      case "hdmi2": return "extInput:hdmi?port=2";
-      case "hdmi3": return "extInput:hdmi?port=3";
-      case "analog": return "extInput:line";
-      case "usb": return "storage:usb1";
-      case "network": return "dlna:music";
+    @Override
+    public String setInputCommand(Command command){
+      switch(command.toString().toLowerCase()){
+          case "btaudio": return "extInput:btAudio";
+          case "tv": return "extInput:tv";
+          case "hdmi1": return "extInput:hdmi?port=1";
+          case "hdmi2": return "extInput:hdmi?port=2";
+          case "hdmi3": return "extInput:hdmi?port=3";
+          case "analog": return "extInput:line";
+          case "usb": return "storage:usb1";
+          case "network": return "dlna:music";
+      }
+      return command.toString();
     }
-    return command.toString();
-  }
 
-  @Override
-  public StringType inputSource(String input){
-    String in = input.toLowerCase();
-    if(in.contains("extinput:btaudio".toLowerCase())){
-      return new StringType("btaudio");
+    @Override
+    public StringType inputSource(String input){
+        String in = input.toLowerCase();
+        if(in.contains("extinput:btaudio".toLowerCase())){
+            return new StringType("btaudio");
+        }
+        if(in.contains("extinput:tv".toLowerCase())){
+            return new StringType("tv");
+        }
+        if(in.contains("extinput:hdmi?port=1".toLowerCase())){
+            return new StringType("hdmi1");
+        }
+        if(in.contains("extinput:hdmi?port=2".toLowerCase())){
+            return new StringType("hdmi2");
+        }
+        if(in.contains("extinput:hdmi?port=3".toLowerCase())){
+            return new StringType("hdmi3");
+        }
+        if(in.contains("extinput:line".toLowerCase())){
+            return new StringType("analog");
+        }
+        if(in.contains("storage:usb1".toLowerCase())){
+            return new StringType("usb");
+        }
+        if(in.contains("dlna:music".toLowerCase())){
+            return new StringType("network");
+        }
+        return new StringType(input);
     }
-    if(in.contains("extinput:tv".toLowerCase())){
-      return new StringType("tv");
-    }
-    if(in.contains("extinput:hdmi?port=1".toLowerCase())){
-      return new StringType("hdmi1");
-    }
-    if(in.contains("extinput:hdmi?port=2".toLowerCase())){
-      return new StringType("hdmi2");
-    }
-    if(in.contains("extinput:hdmi?port=3".toLowerCase())){
-      return new StringType("hdmi3");
-    }
-    if(in.contains("extinput:line".toLowerCase())){
-      return new StringType("analog");
-    }
-    if(in.contains("storage:usb1".toLowerCase())){
-      return new StringType("usb");
-    }
-    if(in.contains("dlna:music".toLowerCase())){
-      return new StringType("network");
-    }
-    return new StringType(input);
-  }
 }

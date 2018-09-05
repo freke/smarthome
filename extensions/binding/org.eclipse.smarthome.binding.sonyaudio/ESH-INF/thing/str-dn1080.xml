@@ -144,7 +144,6 @@
 				<option value="neuralX">Neural:X</option>
 				<option value="frontSurround">Front Surround</option>
 				<option value="audioEnhancer">Audio Enhancer</option>
-				<option value="off">Off</option>
 			</options>
 		</state>
 	</channel-type>

@@ -320,17 +320,6 @@ class GetSoundSettings extends SonyAudioMethod {
 }
 
 /**
- * The {@link GetSoundField} SONY Audio control API method
- *
- * @author David Åberg - Initial contribution
- */
-class GetSoundField extends GetSoundSettings {
-    GetSoundField() {
-        super("soundField");
-    }
-}
-
-/**
  * Helper class
  *
  * @author David Åberg - Initial contribution

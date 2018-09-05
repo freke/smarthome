@@ -21,6 +21,7 @@ import java.math.BigDecimal;
 import java.util.function.Supplier;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.Map;
@@ -30,6 +31,7 @@ import org.eclipse.smarthome.binding.sonyaudio.internal.SonyAudioEventListener;
 import org.eclipse.smarthome.binding.sonyaudio.internal.protocol.SonyAudioConnection;
 import org.eclipse.smarthome.config.core.Configuration;
 import org.eclipse.smarthome.core.cache.ExpiringCacheAsync;
+import org.eclipse.smarthome.core.cache.ExpiringCache;
 import org.eclipse.smarthome.core.library.types.DecimalType;
 import org.eclipse.smarthome.core.library.types.OnOffType;
 import org.eclipse.smarthome.core.library.types.StringType;
@@ -65,72 +67,59 @@ abstract class SonyAudioHandler extends BaseThingHandler implements SonyAudioEve
 
     private static final long CACHE_EXPIRY = TimeUnit.SECONDS.toMillis(5);
 
-    protected ExpiringCacheAsync<Boolean>[] power_cache;
-    protected ExpiringCacheAsync<String>[] input_cache;
-    protected ExpiringCacheAsync<Integer>[] volume_cache;
-    protected ExpiringCacheAsync<Boolean>[] volume_mute_cache;
-    protected ExpiringCacheAsync<Map<String,String>> sound_settings_cache;
-    protected ExpiringCacheAsync<Integer> radio_freq_cache;
+    protected ExpiringCache<Boolean>[] power_cache;
+    protected ExpiringCache<SonyAudioConnection.SonyAudioInput>[] input_cache;
+    protected ExpiringCache<SonyAudioConnection.SonyAudioVolume>[] volume_cache;
+    protected ExpiringCache<Map<String,String>> sound_settings_cache;
 
-    protected CompletableFuture<Boolean>[] power_promise;
-    protected CompletableFuture<String>[] input_promise;
-    protected CompletableFuture<Integer>[] volume_promise;
-    protected CompletableFuture<Boolean>[] volume_mute_promise;
-    protected CompletableFuture<Map<String,String>> sound_settings_promise;
-    protected CompletableFuture<Integer> radio_freq_promise;
-
-    protected Supplier<CompletableFuture<Boolean>>[] power_supplier;
-    protected Supplier<CompletableFuture<String>>[] input_supplier;
-    protected Supplier<CompletableFuture<Integer>>[] volume_supplier;
-    protected Supplier<CompletableFuture<Boolean>>[] volume_mute_supplier;
-    protected Supplier<CompletableFuture<Map<String,String>>> sound_settings_supplier;
-    protected Supplier<CompletableFuture<Integer>> radio_freq_supplier;
+    protected Supplier<Boolean>[] power_supplier;
+    protected Supplier<SonyAudioConnection.SonyAudioInput>[] input_supplier;
+    protected Supplier<SonyAudioConnection.SonyAudioVolume>[] volume_supplier;
+    protected Supplier<Map<String,String>> sound_settings_supplier;
 
     public SonyAudioHandler(Thing thing) {
         super(thing);
 
-        power_cache = new ExpiringCacheAsync[5];
-        power_promise = new CompletableFuture[5];
+        power_cache = new ExpiringCache[5];
         power_supplier = new Supplier[5];
-        input_cache = new ExpiringCacheAsync[5];
-        input_promise = new CompletableFuture[5];
+        input_cache = new ExpiringCache[5];
         input_supplier = new Supplier[5];
-        volume_cache = new ExpiringCacheAsync[5];
-        volume_mute_cache = new ExpiringCacheAsync[5];
-        volume_promise = new CompletableFuture[5];
-        volume_mute_promise = new CompletableFuture[5];
+        volume_cache = new ExpiringCache[5];
         volume_supplier = new Supplier[5];
-        volume_mute_supplier = new Supplier[5];
 
         for(int i=0; i<5; i++){
-            power_cache[i] = new ExpiringCacheAsync<>(CACHE_EXPIRY);
-            input_cache[i] = new ExpiringCacheAsync<>(CACHE_EXPIRY);
-            volume_cache[i] = new ExpiringCacheAsync<>(CACHE_EXPIRY);
-            volume_mute_cache[i] = new ExpiringCacheAsync<>(CACHE_EXPIRY);
+            final int index = i;
 
-            power_promise[i] = new CompletableFuture<Boolean>();
-            input_promise[i] = new CompletableFuture<String>();
-            volume_promise[i] = new CompletableFuture<Integer>();
-            volume_mute_promise[i] = new CompletableFuture<Boolean>();
+            input_supplier[i] = () -> {
+                try {
+                    return connection.getInput(index);
+                } catch(IOException ex) { throw new CompletionException(ex); }
+            };
 
-            final CompletableFuture<Boolean> p_power = power_promise[i];
-            final CompletableFuture<String> p_input = input_promise[i];
-            final CompletableFuture<Integer> p_volume = volume_promise[i];
-            final CompletableFuture<Boolean> p_volume_mute = volume_mute_promise[i];
+            power_supplier[i] = () -> {
+              try {
+                  return connection.getPower(index);
+              } catch(IOException ex) { throw new CompletionException(ex); }
+            };
 
-            power_supplier[i] = () -> p_power;
-            input_supplier[i] = () -> p_input;
-            volume_supplier[i] = () -> p_volume;
-            volume_mute_supplier[i] = () -> p_volume_mute;
+            volume_supplier[i] = () -> {
+              try {
+                  return connection.getVolume(index);
+              } catch(IOException ex) { throw new CompletionException(ex); }
+            };
+
+            power_cache[i] = new ExpiringCache<>(CACHE_EXPIRY, power_supplier[i]);
+            input_cache[i] = new ExpiringCache<>(CACHE_EXPIRY, input_supplier[i]);
+            volume_cache[i] = new ExpiringCache<>(CACHE_EXPIRY, volume_supplier[i]);
         }
 
-        sound_settings_cache = new ExpiringCacheAsync<>(CACHE_EXPIRY);
-        sound_settings_promise = new CompletableFuture<Map<String,String>>();
-        sound_settings_supplier = () -> sound_settings_promise;
+        sound_settings_supplier = () -> {
+            try {
+                return connection.getSoundSettings();
+            } catch(IOException ex) { throw new CompletionException(ex); }
+        };
 
-        radio_freq_cache = new ExpiringCacheAsync<>(CACHE_EXPIRY);
-        radio_freq_promise = new CompletableFuture<Integer>();
-        radio_freq_supplier = () -> radio_freq_promise;
+        sound_settings_cache = new ExpiringCache<>(CACHE_EXPIRY, sound_settings_supplier);
     }
 
     @Override
@@ -230,11 +219,12 @@ abstract class SonyAudioHandler extends BaseThingHandler implements SonyAudioEve
 
     public void handleSoundSettings(Command command, ChannelUID channelUID) throws IOException {
         if (command instanceof RefreshType) {
-            connection.getSoundSettings(sound_settings_promise);
-            CompletableFuture<Map<String,String>> result = sound_settings_cache.getValue(sound_settings_supplier);
-            result.thenAccept(newValue -> updateState(channelUID, new StringType(newValue.get("soundField"))));
+            logger.debug("handleSoundSettings RefreshType");
+            Map<String,String> result = sound_settings_cache.getValue();
+            updateState(channelUID, new StringType(result.get("soundField")));
         }
         if (command instanceof StringType) {
+            logger.debug("handleSoundSettings set {} {}", command);
             connection.setSoundSettings("soundField", ((StringType) command).toString());
         }
     }
@@ -245,11 +235,12 @@ abstract class SonyAudioHandler extends BaseThingHandler implements SonyAudioEve
 
     public void handlePowerCommand(Command command, ChannelUID channelUID, int zone) throws IOException {
         if (command instanceof RefreshType) {
-            connection.getPower(power_promise[zone], zone);
-            CompletableFuture<Boolean> result = power_cache[zone].getValue(power_supplier[zone]);
-            result.thenAccept(newValue -> updateState(channelUID, newValue ? OnOffType.ON : OnOffType.OFF));
+            logger.debug("handlePowerCommand RefreshType {}", zone);
+            Boolean result = power_cache[zone].getValue();
+            updateState(channelUID, result ? OnOffType.ON : OnOffType.OFF);
         }
         if (command instanceof OnOffType) {
+            logger.debug("handlePowerCommand set {} {}", zone, command);
             connection.setPower(((OnOffType) command) == OnOffType.ON, zone);
         }
     }
@@ -260,15 +251,22 @@ abstract class SonyAudioHandler extends BaseThingHandler implements SonyAudioEve
 
     public void handleInputCommand(Command command, ChannelUID channelUID, int zone) throws IOException {
         if (command instanceof RefreshType) {
-            connection.getInput(input_promise[zone], radio_freq_promise, zone);
-            CompletableFuture<String> result = input_cache[zone].getValue(input_supplier[zone]);
-            result.thenAccept(newValue -> {
+            logger.debug("handleInputCommand RefreshType {}", zone);
+            try {
+                SonyAudioConnection.SonyAudioInput result = input_cache[zone].getValue();
                 if(zone > 0)
-                    input_zone.put(zone, newValue);
-                updateState(channelUID, new StringType(newValue));
-            });
+                    input_zone.put(zone, result.input);
+                updateState(channelUID, inputSource(result.input));
+
+                if(result.radio_freq.isPresent()){
+                    updateState(SonyAudioBindingConstants.CHANNEL_RADIO_FREQ, new DecimalType(result.radio_freq.get() / 1000000.0));
+                }
+            } catch(CompletionException ex) {
+                throw new IOException(ex.getCause());
+            }
         }
         if (command instanceof StringType) {
+            logger.debug("handleInputCommand set {} {}", zone, command);
             connection.setInput(setInputCommand(command), zone);
         }
     }
@@ -279,18 +277,21 @@ abstract class SonyAudioHandler extends BaseThingHandler implements SonyAudioEve
 
     public void handleVolumeCommand(Command command, ChannelUID channelUID, int zone) throws IOException {
         if (command instanceof RefreshType) {
-            connection.getVolume(volume_promise[zone], volume_mute_promise[zone], zone);
-            CompletableFuture<Integer> result = volume_cache[zone].getValue(volume_supplier[zone]);
-            result.thenAccept(newValue -> updateState(channelUID, new PercentType(newValue)));
+            logger.debug("handleVolumeCommand RefreshType {}", zone);
+            SonyAudioConnection.SonyAudioVolume result = volume_cache[zone].getValue();
+            updateState(channelUID, new PercentType(result.volume));
         }
         if (command instanceof PercentType) {
+            logger.debug("handleVolumeCommand PercentType set {} {}", zone, command);
             connection.setVolume(((PercentType) command).intValue(), zone);
         }
         if (command instanceof IncreaseDecreaseType) {
+            logger.debug("handleVolumeCommand IncreaseDecreaseType set {} {}", zone, command);
             String change = command == IncreaseDecreaseType.INCREASE ? "+1" : "-1";
             connection.setVolume(change, zone);
         }
         if (command instanceof OnOffType) {
+            logger.debug("handleVolumeCommand OnOffType set {} {}", zone, command);
             connection.setMute(((OnOffType) command) == OnOffType.ON, zone);
         }
     }
@@ -301,23 +302,17 @@ abstract class SonyAudioHandler extends BaseThingHandler implements SonyAudioEve
 
     public void handleMuteCommand(Command command, ChannelUID channelUID, int zone) throws IOException {
         if (command instanceof RefreshType) {
-            connection.getVolume(volume_promise[zone], volume_mute_promise[zone], zone);
-            CompletableFuture<Boolean> result = volume_mute_cache[zone].getValue(volume_mute_supplier[zone]);
-            result.thenAccept(newValue -> updateState(channelUID, newValue ? OnOffType.ON : OnOffType.OFF));
+            logger.debug("handleMuteCommand RefreshType {}", zone);
+            SonyAudioConnection.SonyAudioVolume result = volume_cache[zone].getValue();
+            updateState(channelUID, result.mute ? OnOffType.ON : OnOffType.OFF);
         }
         if (command instanceof OnOffType) {
+            logger.debug("handleMuteCommand set {} {}", zone, command);
             connection.setMute(((OnOffType) command) == OnOffType.ON, zone);
         }
     }
 
     public void handleRadioCommand(Command command, ChannelUID channelUID) throws IOException {
-        if (command instanceof RefreshType) {
-            connection.getInput(input_promise[0], radio_freq_promise);
-            CompletableFuture<Integer> result = radio_freq_cache.getValue(radio_freq_supplier);
-            result.thenAccept(newValue -> {
-                updateState(channelUID, new DecimalType(newValue / 1000000.0));
-            });
-        }
     }
 
     public void handleRadioStationCommand(Command command, ChannelUID channelUID) throws IOException {
@@ -430,25 +425,21 @@ abstract class SonyAudioHandler extends BaseThingHandler implements SonyAudioEve
 
     @Override
     public void updateInputSource(int zone, String source) {
+        input_cache[zone].invalidateValue();
         switch (zone) {
             case 0:
-                input_promise[zone].complete(source);
                 updateState(SonyAudioBindingConstants.CHANNEL_INPUT, inputSource(source));
                 break;
             case 1:
-                input_promise[zone].complete(source);
                 updateState(SonyAudioBindingConstants.CHANNEL_ZONE1_INPUT, inputSource(source));
                 break;
             case 2:
-                input_promise[zone].complete(source);
                 updateState(SonyAudioBindingConstants.CHANNEL_ZONE2_INPUT, inputSource(source));
                 break;
             case 3:
-                input_promise[zone].complete(source);
                 updateState(SonyAudioBindingConstants.CHANNEL_ZONE3_INPUT, inputSource(source));
                 break;
             case 4:
-                input_promise[zone].complete(source);
                 updateState(SonyAudioBindingConstants.CHANNEL_ZONE4_INPUT, inputSource(source));
                 break;
         }
@@ -474,25 +465,21 @@ abstract class SonyAudioHandler extends BaseThingHandler implements SonyAudioEve
 
     @Override
     public void updateVolume(int zone, int volume) {
+        power_cache[zone].invalidateValue();
         switch (zone) {
             case 0:
-                volume_promise[zone].complete(volume);
                 updateState(SonyAudioBindingConstants.CHANNEL_VOLUME, new PercentType(volume));
                 break;
             case 1:
-                volume_promise[zone].complete(volume);
                 updateState(SonyAudioBindingConstants.CHANNEL_ZONE1_VOLUME, new PercentType(volume));
                 break;
             case 2:
-                volume_promise[zone].complete(volume);
                 updateState(SonyAudioBindingConstants.CHANNEL_ZONE2_VOLUME, new PercentType(volume));
                 break;
             case 3:
-                volume_promise[zone].complete(volume);
                 updateState(SonyAudioBindingConstants.CHANNEL_ZONE3_VOLUME, new PercentType(volume));
                 break;
             case 4:
-                volume_promise[zone].complete(volume);
                 updateState(SonyAudioBindingConstants.CHANNEL_ZONE4_VOLUME, new PercentType(volume));
                 break;
         }
@@ -500,25 +487,21 @@ abstract class SonyAudioHandler extends BaseThingHandler implements SonyAudioEve
 
     @Override
     public void updateMute(int zone, boolean mute) {
+        power_cache[zone].invalidateValue();
         switch (zone) {
             case 0:
-                volume_mute_promise[zone].complete(mute);
                 updateState(SonyAudioBindingConstants.CHANNEL_MUTE, mute ? OnOffType.ON : OnOffType.OFF);
                 break;
             case 1:
-                volume_mute_promise[zone].complete(mute);
                 updateState(SonyAudioBindingConstants.CHANNEL_ZONE1_MUTE, mute ? OnOffType.ON : OnOffType.OFF);
                 break;
             case 2:
-                volume_mute_promise[zone].complete(mute);
                 updateState(SonyAudioBindingConstants.CHANNEL_ZONE2_MUTE, mute ? OnOffType.ON : OnOffType.OFF);
                 break;
             case 3:
-                volume_mute_promise[zone].complete(mute);
                 updateState(SonyAudioBindingConstants.CHANNEL_ZONE3_MUTE, mute ? OnOffType.ON : OnOffType.OFF);
                 break;
             case 4:
-                volume_mute_promise[zone].complete(mute);
                 updateState(SonyAudioBindingConstants.CHANNEL_ZONE4_MUTE, mute ? OnOffType.ON : OnOffType.OFF);
                 break;
         }
@@ -526,25 +509,21 @@ abstract class SonyAudioHandler extends BaseThingHandler implements SonyAudioEve
 
     @Override
     public void updatePowerStatus(int zone, boolean power) {
+        power_cache[zone].invalidateValue();
         switch (zone) {
             case 0:
-                power_promise[zone].complete(power);
                 updateState(SonyAudioBindingConstants.CHANNEL_POWER, power ? OnOffType.ON : OnOffType.OFF);
                 break;
             case 1:
-                power_promise[zone].complete(power);
                 updateState(SonyAudioBindingConstants.CHANNEL_ZONE1_POWER, power ? OnOffType.ON : OnOffType.OFF);
                 break;
             case 2:
-                power_promise[zone].complete(power);
                 updateState(SonyAudioBindingConstants.CHANNEL_ZONE2_POWER, power ? OnOffType.ON : OnOffType.OFF);
                 break;
             case 3:
-                power_promise[zone].complete(power);
                 updateState(SonyAudioBindingConstants.CHANNEL_ZONE3_POWER, power ? OnOffType.ON : OnOffType.OFF);
                 break;
             case 4:
-                power_promise[zone].complete(power);
                 updateState(SonyAudioBindingConstants.CHANNEL_ZONE4_POWER, power ? OnOffType.ON : OnOffType.OFF);
                 break;
         }

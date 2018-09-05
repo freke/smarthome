@@ -23,6 +23,9 @@ import org.eclipse.smarthome.core.types.RefreshType;
 import org.eclipse.smarthome.core.thing.ChannelUID;
 import org.eclipse.smarthome.core.library.types.StringType;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * The {@link SrsZr5Handler} is responsible for handling commands for SRS-ZR5, which are
  * sent to one of the channels.
@@ -30,6 +33,8 @@ import org.eclipse.smarthome.core.library.types.StringType;
  * @author David Åberg - Initial contribution
  */
 public class SrsZr5Handler extends SonyAudioHandler {
+
+    private final Logger logger = LoggerFactory.getLogger(SonyAudioHandler.class);
 
     public SrsZr5Handler(Thing thing) {
         super(thing);
@@ -71,21 +76,21 @@ public class SrsZr5Handler extends SonyAudioHandler {
     @Override
     public void handleSoundSettings(Command command, ChannelUID channelUID) throws IOException {
         if (command instanceof RefreshType) {
-            connection.getSoundSettings(sound_settings_promise);
-            CompletableFuture<Map<String,String>> result = sound_settings_cache.getValue(sound_settings_supplier);
-            result.thenAccept(newValue -> {
-                if(newValue.get("clearAudio").equalsIgnoreCase("on")){
-                    updateState(channelUID, new StringType("clearAudio"));
-                }else{
-                    updateState(channelUID, new StringType(newValue.get("soundField")));
-                }
-            });
+            logger.debug("SrsZr5Handler handleSoundSettings RefreshType");
+            Map<String,String> result = sound_settings_cache.getValue();
+
+            logger.debug("SrsZr5Handler Updateing sound field to {} {}", result.get("clearAudio"), result.get("soundField"));
+            if(result.get("clearAudio").equalsIgnoreCase("on")){
+                updateState(channelUID, new StringType("clearAudio"));
+            }else{
+                updateState(channelUID, new StringType(result.get("soundField")));
+            }
         }
         if (command instanceof StringType) {
             if(((StringType) command).toString().equalsIgnoreCase("clearAudio")){
-                connection.SetSoundSettings("clearAudio", "on");
+                connection.setSoundSettings("clearAudio", "on");
             }else{
-                connection.SetSoundSettings("soundField", ((StringType) command).toString());
+                connection.setSoundSettings("soundField", ((StringType) command).toString());
             }
         }
     }

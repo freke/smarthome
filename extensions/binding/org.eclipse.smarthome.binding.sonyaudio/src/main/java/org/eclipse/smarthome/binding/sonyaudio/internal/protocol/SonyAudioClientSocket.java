@@ -195,7 +195,7 @@ public class SonyAudioClientSocket {
         try {
             method.id = nextMessageId;
             String message = mapper.toJson(method);
-            logger.info("callMethod send {}", message);
+            logger.debug("callMethod send {}", message);
 
             commandLatch = new CountDownLatch(1);
             commandResponse = null;
@@ -203,7 +203,7 @@ public class SonyAudioClientSocket {
 
             sendMessage(message);
             if (commandLatch.await(REQUEST_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
-                logger.info("callMethod {} returns {}", uri.toString(), commandResponse.toString());
+                logger.debug("callMethod {} returns {}", uri.toString(), commandResponse.toString());
                 return commandResponse.get("result");
             } else {
                 logger.debug("Timeout during callMethod({}, {})", method.method, message);
