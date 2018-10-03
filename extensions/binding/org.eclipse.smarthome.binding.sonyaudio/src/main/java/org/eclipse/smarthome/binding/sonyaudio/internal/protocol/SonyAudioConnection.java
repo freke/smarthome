@@ -14,7 +14,6 @@ package org.eclipse.smarthome.binding.sonyaudio.internal.protocol;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
-import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;
@@ -52,57 +51,94 @@ public class SonyAudioConnection implements SonyAudioClientSocketEventListener {
     private String path;
     private URI base_uri;
 
-    private WebSocketClient web_socket_client;
+    private WebSocketClient webSocketClient;
 
-    private SonyAudioClientSocket av_content_socket;
-    private SonyAudioClientSocket audio_socket;
-    private SonyAudioClientSocket system_socket;
+    private SonyAudioClientSocket avContentSocket;
+    private SonyAudioClientSocket audioSocket;
+    private SonyAudioClientSocket systemSocket;
 
     private SonyAudioEventListener listener;
 
     private int min_volume = 0;
     private int max_volume = 100;
 
-    public SonyAudioConnection(String host, int port, String path, SonyAudioEventListener listener)
-            throws MalformedURLException {
+    private Gson gson;
+
+    public SonyAudioConnection(String host, int port, String path, SonyAudioEventListener listener,
+            ScheduledExecutorService scheduler, WebSocketClient webSocketClient) throws URISyntaxException {
         this.host = host;
         this.port = port;
         this.path = path;
         this.listener = listener;
+        this.gson = new Gson();
+        this.webSocketClient = webSocketClient;
+
+        base_uri = new URI(String.format("ws://%s:%d/%s", host, port, path)).normalize();
+
+        URI wsAvContentUri = base_uri.resolve(base_uri.getPath() + "/avContent").normalize();
+        avContentSocket = new SonyAudioClientSocket(this, wsAvContentUri, scheduler);
+        URI wsAudioUri = base_uri.resolve(base_uri.getPath() + "/audio").normalize();
+        audioSocket = new SonyAudioClientSocket(this, wsAudioUri, scheduler);
+
+        URI wsSystemUri = base_uri.resolve(base_uri.getPath() + "/system").normalize();
+        systemSocket = new SonyAudioClientSocket(this, wsSystemUri, scheduler);
     }
 
     @Override
     public void handleEvent(JsonObject json) {
         int zone = 0;
-        JsonObject param = json.get("params").getAsJsonArray().get(0).getAsJsonObject();
+        JsonObject param;
+
+        try {
+            param = json.getAsJsonArray("params").get(0).getAsJsonObject();
+        } catch (NullPointerException e) {
+            logger.debug("Invalid json in handleEvent");
+            return;
+        } catch (IndexOutOfBoundsException e) {
+            logger.debug("Invalid json in handleEvent");
+            return;
+        }
+
+        if (param == null) {
+            logger.debug("Unable to get params form json in handleEvent");
+            return;
+        }
 
         if (param.has("output")) {
-            String output_str = param.get("output").getAsString();
+            String outputStr = param.get("output").getAsString();
             Pattern pattern = Pattern.compile(".*zone=(\\d+)");
-            Matcher m = pattern.matcher(output_str);
+            Matcher m = pattern.matcher(outputStr);
             if (m.matches()) {
-                zone = Integer.parseInt(m.group(1));
+                try {
+                    zone = Integer.parseInt(m.group(1));
+                } catch (NumberFormatException e) {
+                    logger.error("This should never happen, pattern should only match integers");
+                    return;
+                }
             }
         }
 
         if (json.get("method").getAsString().equalsIgnoreCase("notifyPlayingContentInfo")) {
-            String uri = param.get("uri").getAsString();
+            SonyAudioInput input = new SonyAudioInput();
+            ;
+            input.input = param.get("uri").getAsString();
             if (param.has("broadcastFreq")) {
                 int freq = param.get("broadcastFreq").getAsInt();
-                listener.updateBroadcastFreq(freq);
-                checkRadioPreset(uri);
+                input.radio_freq = Optional.of(freq);
+                checkRadioPreset(input.input);
             }
-            listener.updateInputSource(zone, uri);
+            listener.updateInput(zone, input);
             listener.updateSeekStation("");
         }
 
         if (json.get("method").getAsString().equalsIgnoreCase("notifyVolumeInformation")) {
-            int volume = param.get("volume").getAsInt();
-            volume = Math.round(100 * (volume - min_volume) / (max_volume - min_volume));
-            listener.updateVolume(zone, volume);
+            SonyAudioVolume volume = new SonyAudioVolume();
 
-            String mute = param.get("mute").getAsString();
-            listener.updateMute(zone, mute.equalsIgnoreCase("on"));
+            int rawVolume = param.get("volume").getAsInt();
+            volume.volume = Math.round(100 * (rawVolume - min_volume) / (max_volume - min_volume));
+
+            volume.mute = param.get("mute").getAsString().equalsIgnoreCase("on");
+            listener.updateVolume(zone, volume);
         }
 
         if (json.get("method").getAsString().equalsIgnoreCase("notifyPowerStatus")) {
@@ -135,12 +171,12 @@ public class SonyAudioConnection implements SonyAudioClientSocketEventListener {
         SwitchNotifications switchNotifications = new SwitchNotifications(notifications.enabled,
                 notifications.disabled);
         JsonElement switches = socket.callMethod(switchNotifications);
-        Gson mapper = new Gson();
+
         Type notificationListType = new TypeToken<List<Notification>>() {
         }.getType();
-        notifications.enabled = mapper.fromJson(switches.getAsJsonArray().get(0).getAsJsonObject().get("enabled"),
+        notifications.enabled = gson.fromJson(switches.getAsJsonArray().get(0).getAsJsonObject().get("enabled"),
                 notificationListType);
-        notifications.disabled = mapper.fromJson(switches.getAsJsonArray().get(0).getAsJsonObject().get("disabled"),
+        notifications.disabled = gson.fromJson(switches.getAsJsonArray().get(0).getAsJsonObject().get("disabled"),
                 notificationListType);
 
         return notifications;
@@ -153,8 +189,8 @@ public class SonyAudioConnection implements SonyAudioClientSocketEventListener {
             notifications.enabled = Arrays.asList(new Notification[] {});
             notifications.disabled = Arrays.asList(new Notification[] {});
 
-            if (av_content_socket.getURI().equals(resource)) {
-                notifications = getSwitches(av_content_socket, notifications);
+            if (avContentSocket.getURI().equals(resource)) {
+                notifications = getSwitches(avContentSocket, notifications);
 
                 for (Iterator<Notification> iter = notifications.disabled.listIterator(); iter.hasNext();) {
                     Notification a = iter.next();
@@ -166,11 +202,11 @@ public class SonyAudioConnection implements SonyAudioClientSocketEventListener {
 
                 SwitchNotifications switchNotifications = new SwitchNotifications(notifications.enabled,
                         notifications.disabled);
-                av_content_socket.callMethod(switchNotifications);
+                avContentSocket.callMethod(switchNotifications);
             }
 
-            if (audio_socket.getURI().equals(resource)) {
-                notifications = getSwitches(audio_socket, notifications);
+            if (audioSocket.getURI().equals(resource)) {
+                notifications = getSwitches(audioSocket, notifications);
 
                 for (Iterator<Notification> iter = notifications.disabled.listIterator(); iter.hasNext();) {
                     Notification a = iter.next();
@@ -182,11 +218,11 @@ public class SonyAudioConnection implements SonyAudioClientSocketEventListener {
 
                 SwitchNotifications switchNotifications = new SwitchNotifications(notifications.enabled,
                         notifications.disabled);
-                audio_socket.callMethod(switchNotifications);
+                audioSocket.callMethod(switchNotifications);
             }
 
-            if (system_socket.getURI().equals(resource)) {
-                notifications = getSwitches(system_socket, notifications);
+            if (systemSocket.getURI().equals(resource)) {
+                notifications = getSwitches(systemSocket, notifications);
 
                 for (Iterator<Notification> iter = notifications.disabled.listIterator(); iter.hasNext();) {
                     Notification a = iter.next();
@@ -198,85 +234,44 @@ public class SonyAudioConnection implements SonyAudioClientSocketEventListener {
 
                 SwitchNotifications switchNotifications = new SwitchNotifications(notifications.enabled,
                         notifications.disabled);
-                system_socket.callMethod(switchNotifications);
+                systemSocket.callMethod(switchNotifications);
             }
             listener.updateConnectionState(true);
         } catch (IOException e) {
+            logger.error("Failed to setup connection");
             listener.updateConnectionState(false);
-        }
-    }
-
-    public synchronized void connect(ScheduledExecutorService scheduler) {
-        try {
-            base_uri = new URI(String.format("ws://%s:%d/%s", host, port, path)).normalize();
-
-            web_socket_client = new WebSocketClient();
-            web_socket_client.start();
-
-            URI wsAvContentUri = base_uri.resolve(base_uri.getPath() + "/avContent").normalize();
-            av_content_socket = new SonyAudioClientSocket(this, wsAvContentUri, scheduler);
-            av_content_socket.open(web_socket_client);
-
-            URI wsAudioUri = base_uri.resolve(base_uri.getPath() + "/audio").normalize();
-            audio_socket = new SonyAudioClientSocket(this, wsAudioUri, scheduler);
-            audio_socket.open(web_socket_client);
-
-            URI wsSystemUri = base_uri.resolve(base_uri.getPath() + "/system").normalize();
-            system_socket = new SonyAudioClientSocket(this, wsSystemUri, scheduler);
-            system_socket.open(web_socket_client);
-        } catch (URISyntaxException e) {
-            logger.debug("Invalid URI ws://{}:{}/", host, port, path, e);
-        } catch (Exception e) {
-            logger.debug("Exception then trying to start the websocket {}", e.getMessage(), e);
         }
     }
 
     public synchronized void close() {
         logger.debug("SonyAudio closing connections");
-        if (av_content_socket != null) {
-            av_content_socket.close();
+        if (avContentSocket != null) {
+            avContentSocket.close();
         }
-        av_content_socket = null;
+        avContentSocket = null;
 
-        if (audio_socket != null) {
-            audio_socket.close();
+        if (audioSocket != null) {
+            audioSocket.close();
         }
-        audio_socket = null;
+        audioSocket = null;
 
-        if (system_socket != null) {
-            system_socket.close();
+        if (systemSocket != null) {
+            systemSocket.close();
         }
-        system_socket = null;
-
-        if (web_socket_client != null) {
-            try {
-                web_socket_client.stop();
-            } catch (Exception e) {
-                logger.debug("Exception during closing the websocket client {}", e.getMessage(), e);
-            }
-            web_socket_client = null;
-        }
+        systemSocket = null;
     }
 
     private boolean checkConnection(SonyAudioClientSocket socket) {
-        if (!web_socket_client.isStarted()) {
-            try {
-                web_socket_client.start();
-            } catch (Exception e) {
-                logger.debug("Exception then trying to start the websocket {}", e.getMessage(), e);
-                return false;
-            }
-        }
         if (!socket.isConnected()) {
             logger.debug("checkConnection: try to connect to {}", socket.getURI().toString());
-            socket.open(web_socket_client);
+            socket.open(webSocketClient);
             return socket.isConnected();
         }
         return true;
     }
 
     public boolean checkConnection() {
-        return checkConnection(av_content_socket) && checkConnection(audio_socket) && checkConnection(system_socket);
+        return checkConnection(avContentSocket) && checkConnection(audioSocket) && checkConnection(systemSocket);
     }
 
     public String getConnectionName() {
@@ -288,11 +283,11 @@ public class SonyAudioConnection implements SonyAudioClientSocketEventListener {
 
     public Boolean getPower(int zone) throws IOException {
         if (zone > 0) {
-            if (av_content_socket == null) {
+            if (avContentSocket == null) {
                 throw new IOException("AvContent Socket not connected");
             }
             GetCurrentExternalTerminalsStatus getCurrentExternalTerminalsStatus = new GetCurrentExternalTerminalsStatus();
-            JsonElement element = av_content_socket.callMethod(getCurrentExternalTerminalsStatus);
+            JsonElement element = avContentSocket.callMethod(getCurrentExternalTerminalsStatus);
 
             if (element != null && element.isJsonArray()) {
                 Iterator<JsonElement> terminals = element.getAsJsonArray().get(0).getAsJsonArray().iterator();
@@ -307,12 +302,12 @@ public class SonyAudioConnection implements SonyAudioClientSocketEventListener {
             throw new IOException(
                     "Unexpected responses: Unable to parse GetCurrentExternalTerminalsStatus response message");
         } else {
-            if (system_socket == null) {
+            if (systemSocket == null) {
                 throw new IOException("System Socket not connected");
             }
 
             GetPowerStatus getPowerStatus = new GetPowerStatus();
-            JsonElement element = system_socket.callMethod(getPowerStatus);
+            JsonElement element = systemSocket.callMethod(getPowerStatus);
 
             if (element != null && element.isJsonArray()) {
                 String powerStatus = element.getAsJsonArray().get(0).getAsJsonObject().get("status").getAsString();
@@ -328,17 +323,17 @@ public class SonyAudioConnection implements SonyAudioClientSocketEventListener {
 
     public void setPower(boolean power, int zone) throws IOException {
         if (zone > 0) {
-            if (av_content_socket == null) {
+            if (avContentSocket == null) {
                 throw new IOException("AvContent Socket not connected");
             }
             SetActiveTerminal setActiveTerminal = new SetActiveTerminal(power, zone);
-            av_content_socket.callMethod(setActiveTerminal);
+            avContentSocket.callMethod(setActiveTerminal);
         } else {
-            if (system_socket == null) {
+            if (systemSocket == null) {
                 throw new IOException("System Socket not connected");
             }
             SetPowerStatus setPowerStatus = new SetPowerStatus(power);
-            system_socket.callMethod(setPowerStatus);
+            systemSocket.callMethod(setPowerStatus);
         }
     }
 
@@ -358,10 +353,10 @@ public class SonyAudioConnection implements SonyAudioClientSocketEventListener {
     }
 
     private SonyAudioInput getInput(GetPlayingContentInfo getPlayingContentInfo) throws IOException {
-        if (av_content_socket == null) {
+        if (avContentSocket == null) {
             throw new IOException("AvContent Socket not connected");
         }
-        JsonElement element = av_content_socket.callMethod(getPlayingContentInfo);
+        JsonElement element = avContentSocket.callMethod(getPlayingContentInfo);
 
         if (element != null && element.isJsonArray()) {
             SonyAudioInput ret = new SonyAudioInput();
@@ -381,35 +376,35 @@ public class SonyAudioConnection implements SonyAudioClientSocketEventListener {
     }
 
     public void setInput(String input) throws IOException {
-        if (av_content_socket == null) {
+        if (avContentSocket == null) {
             throw new IOException("AvContent Socket not connected");
         }
         SetPlayContent setPlayContent = new SetPlayContent(input);
-        av_content_socket.callMethod(setPlayContent);
+        avContentSocket.callMethod(setPlayContent);
     }
 
     public void setInput(String input, int zone) throws IOException {
-        if (av_content_socket == null) {
+        if (avContentSocket == null) {
             throw new IOException("AvContent Socket not connected");
         }
         SetPlayContent setPlayContent = new SetPlayContent(input, zone);
-        av_content_socket.callMethod(setPlayContent);
+        avContentSocket.callMethod(setPlayContent);
     }
 
     public void radioSeekFwd() throws IOException {
-        if (av_content_socket == null) {
+        if (avContentSocket == null) {
             throw new IOException("AvContent Socket not connected");
         }
         SeekBroadcastStation seekBroadcastStation = new SeekBroadcastStation(true);
-        av_content_socket.callMethod(seekBroadcastStation);
+        avContentSocket.callMethod(seekBroadcastStation);
     }
 
     public void radioSeekBwd() throws IOException {
-        if (av_content_socket == null) {
+        if (avContentSocket == null) {
             throw new IOException("AvContent Socket not connected");
         }
         SeekBroadcastStation seekBroadcastStation = new SeekBroadcastStation(false);
-        av_content_socket.callMethod(seekBroadcastStation);
+        avContentSocket.callMethod(seekBroadcastStation);
     }
 
     public class SonyAudioVolume {
@@ -420,10 +415,10 @@ public class SonyAudioConnection implements SonyAudioClientSocketEventListener {
     public SonyAudioVolume getVolume(int zone) throws IOException {
         GetVolumeInformation getVolumeInformation = new GetVolumeInformation(zone);
 
-        if (audio_socket == null || !audio_socket.isConnected()) {
+        if (audioSocket == null || !audioSocket.isConnected()) {
             throw new IOException("Audio Socket not connected");
         }
-        JsonElement element = audio_socket.callMethod(getVolumeInformation);
+        JsonElement element = audioSocket.callMethod(getVolumeInformation);
 
         if (element != null && element.isJsonArray()) {
             JsonObject result = element.getAsJsonArray().get(0).getAsJsonArray().get(0).getAsJsonObject();
@@ -448,61 +443,61 @@ public class SonyAudioConnection implements SonyAudioClientSocketEventListener {
     }
 
     public void setVolume(int volume) throws IOException {
-        if (audio_socket == null) {
+        if (audioSocket == null) {
             throw new IOException("Audio Socket not connected");
         }
         SetAudioVolume setAudioVolume = new SetAudioVolume(volume, min_volume, max_volume);
-        audio_socket.callMethod(setAudioVolume);
+        audioSocket.callMethod(setAudioVolume);
     }
 
-    public void setVolume(String volume_change) throws IOException {
-        if (audio_socket == null) {
+    public void setVolume(String volumeChange) throws IOException {
+        if (audioSocket == null) {
             throw new IOException("Audio Socket not connected");
         }
-        SetAudioVolume setAudioVolume = new SetAudioVolume(volume_change);
-        audio_socket.callMethod(setAudioVolume);
+        SetAudioVolume setAudioVolume = new SetAudioVolume(volumeChange);
+        audioSocket.callMethod(setAudioVolume);
     }
 
     public void setVolume(int volume, int zone) throws IOException {
-        if (audio_socket == null) {
+        if (audioSocket == null) {
             throw new IOException("Audio Socket not connected");
         }
         SetAudioVolume setAudioVolume = new SetAudioVolume(zone, volume, min_volume, max_volume);
-        audio_socket.callMethod(setAudioVolume);
+        audioSocket.callMethod(setAudioVolume);
     }
 
-    public void setVolume(String volume_change, int zone) throws IOException {
-        if (audio_socket == null) {
+    public void setVolume(String volumeChange, int zone) throws IOException {
+        if (audioSocket == null) {
             throw new IOException("Audio Socket not connected");
         }
-        SetAudioVolume setAudioVolume = new SetAudioVolume(zone, volume_change);
-        audio_socket.callMethod(setAudioVolume);
+        SetAudioVolume setAudioVolume = new SetAudioVolume(zone, volumeChange);
+        audioSocket.callMethod(setAudioVolume);
     }
 
     public void setMute(boolean mute) throws IOException {
-        if (audio_socket == null) {
+        if (audioSocket == null) {
             throw new IOException("Audio Socket not connected");
         }
         SetAudioMute setAudioMute = new SetAudioMute(mute);
-        audio_socket.callMethod(setAudioMute);
+        audioSocket.callMethod(setAudioMute);
     }
 
     public void setMute(boolean mute, int zone) throws IOException {
-        if (audio_socket == null) {
+        if (audioSocket == null) {
             throw new IOException("Audio Socket not connected");
         }
         SetAudioMute setAudioMute = new SetAudioMute(mute, zone);
-        audio_socket.callMethod(setAudioMute);
+        audioSocket.callMethod(setAudioMute);
     }
 
     public Map<String, String> getSoundSettings() throws IOException {
-        if (audio_socket == null) {
+        if (audioSocket == null) {
             throw new IOException("Audio Socket not connected");
         }
         Map<String, String> m = new HashMap<>();
 
         GetSoundSettings getSoundSettings = new GetSoundSettings();
-        JsonElement element = audio_socket.callMethod(getSoundSettings);
+        JsonElement element = audioSocket.callMethod(getSoundSettings);
 
         if (element == null || !element.isJsonArray()) {
             throw new IOException("Unexpected responses: Unable to parse GetSoundSettings response message");
@@ -517,10 +512,10 @@ public class SonyAudioConnection implements SonyAudioClientSocketEventListener {
     }
 
     public void setSoundSettings(String target, String value) throws IOException {
-        if (audio_socket == null) {
+        if (audioSocket == null) {
             throw new IOException("Audio Socket not connected");
         }
         SetSoundSettings setSoundSettings = new SetSoundSettings(target, value);
-        audio_socket.callMethod(setSoundSettings);
+        audioSocket.callMethod(setSoundSettings);
     }
 }

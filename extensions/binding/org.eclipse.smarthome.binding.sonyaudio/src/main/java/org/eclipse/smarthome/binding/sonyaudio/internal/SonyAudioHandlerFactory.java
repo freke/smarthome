@@ -12,6 +12,7 @@
  */
 package org.eclipse.smarthome.binding.sonyaudio.internal;
 
+import org.eclipse.jetty.websocket.client.WebSocketClient;
 import org.eclipse.smarthome.binding.sonyaudio.SonyAudioBindingConstants;
 import org.eclipse.smarthome.binding.sonyaudio.handler.HtCt800Handler;
 import org.eclipse.smarthome.binding.sonyaudio.handler.HtMt500Handler;
@@ -25,8 +26,9 @@ import org.eclipse.smarthome.core.thing.ThingTypeUID;
 import org.eclipse.smarthome.core.thing.binding.BaseThingHandlerFactory;
 import org.eclipse.smarthome.core.thing.binding.ThingHandler;
 import org.eclipse.smarthome.core.thing.binding.ThingHandlerFactory;
+import org.eclipse.smarthome.io.net.http.WebSocketFactory;
 import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.ConfigurationPolicy;
+import org.osgi.service.component.annotations.Reference;
 
 /**
  * The {@link SonyAudioHandlerFactory} is responsible for creating things and thing
@@ -34,8 +36,10 @@ import org.osgi.service.component.annotations.ConfigurationPolicy;
  *
  * @author David - Initial contribution
  */
-@Component(service = ThingHandlerFactory.class, immediate = true, configurationPid = "binding.sonyaudio", configurationPolicy = ConfigurationPolicy.OPTIONAL)
+@Component(service = ThingHandlerFactory.class, configurationPid = "binding.sonyaudio")
 public class SonyAudioHandlerFactory extends BaseThingHandlerFactory {
+
+    private WebSocketClient webSocketClient;
 
     @Override
     public boolean supportsThingType(ThingTypeUID thingTypeUID) {
@@ -48,21 +52,31 @@ public class SonyAudioHandlerFactory extends BaseThingHandlerFactory {
 
         switch (thingTypeUID.getId()) {
             case SonyAudioBindingConstants.SONY_TYPE_STRDN1080:
-                return new StrDn1080Handler(thing);
+                return new StrDn1080Handler(thing, webSocketClient);
             case SonyAudioBindingConstants.SONY_TYPE_HTCT800:
-                return new HtCt800Handler(thing);
+                return new HtCt800Handler(thing, webSocketClient);
             case SonyAudioBindingConstants.SONY_TYPE_HTST5000:
-                return new HtSt5000Handler(thing);
+                return new HtSt5000Handler(thing, webSocketClient);
             case SonyAudioBindingConstants.SONY_TYPE_HTZ9F:
-                return new HtZ9fHandler(thing);
+                return new HtZ9fHandler(thing, webSocketClient);
             case SonyAudioBindingConstants.SONY_TYPE_HTZF9:
-                return new HtZf9Handler(thing);
+                return new HtZf9Handler(thing, webSocketClient);
             case SonyAudioBindingConstants.SONY_TYPE_HTMT500:
-                return new HtMt500Handler(thing);
+                return new HtMt500Handler(thing, webSocketClient);
             case SonyAudioBindingConstants.SONY_TYPE_SRSZR5:
-                return new SrsZr5Handler(thing);
+                return new SrsZr5Handler(thing, webSocketClient);
             default:
                 return null;
         }
     }
+
+    @Reference
+    protected void setWebSocketFactory(WebSocketFactory webSocketFactory) {
+        this.webSocketClient = webSocketFactory.getCommonWebSocketClient();
+    }
+
+    protected void unsetWebSocketFactory(WebSocketFactory webSocketFactory) {
+        this.webSocketClient = null;
+    }
+
 }

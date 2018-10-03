@@ -14,6 +14,8 @@ package org.eclipse.smarthome.binding.sonyaudio.internal;
 
 import java.util.EventListener;
 
+import org.eclipse.smarthome.binding.sonyaudio.internal.protocol.SonyAudioConnection;
+
 /**
  * The {@link SonyAudioEventListener} event listener interface
  * handlers.
@@ -23,17 +25,13 @@ import java.util.EventListener;
 public interface SonyAudioEventListener extends EventListener {
     void updateConnectionState(boolean connected);
 
-    void updateInputSource(int zone, String source);
-
-    void updateBroadcastFreq(int freq);
+    void updateInput(int zone, SonyAudioConnection.SonyAudioInput input);
 
     void updateSeekStation(String seek);
 
     void updateCurrentRadioStation(int radioStation);
 
-    void updateVolume(int zone, int volume);
-
-    void updateMute(int zone, boolean mute);
+    void updateVolume(int zone, SonyAudioConnection.SonyAudioVolume volume);
 
     void updatePowerStatus(int zone, boolean power);
 }

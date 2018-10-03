@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.CompletionException;
 
+import org.eclipse.jetty.websocket.client.WebSocketClient;
 import org.eclipse.smarthome.core.library.types.StringType;
 import org.eclipse.smarthome.core.thing.ChannelUID;
 import org.eclipse.smarthome.core.thing.Thing;
@@ -34,8 +35,8 @@ public class StrDn1080Handler extends SonyAudioHandler {
 
     private final Logger logger = LoggerFactory.getLogger(SonyAudioHandler.class);
 
-    public StrDn1080Handler(Thing thing) {
-        super(thing);
+    public StrDn1080Handler(Thing thing, WebSocketClient webSocketClient) {
+        super(thing, webSocketClient);
     }
 
     @Override
@@ -121,7 +122,7 @@ public class StrDn1080Handler extends SonyAudioHandler {
         if (command instanceof RefreshType) {
             try {
                 logger.debug("StrDn1080Handler handleSoundSettings RefreshType");
-                Map<String, String> result = sound_settings_cache.getValue();
+                Map<String, String> result = soundSettingsCache.getValue();
 
                 if (result != null) {
                     logger.debug("StrDn1080Handler Updateing sound field to {} {}", result.get("pureDirect"),

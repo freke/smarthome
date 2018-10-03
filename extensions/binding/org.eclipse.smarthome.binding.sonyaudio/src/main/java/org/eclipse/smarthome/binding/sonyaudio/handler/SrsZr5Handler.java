@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.CompletionException;
 
+import org.eclipse.jetty.websocket.client.WebSocketClient;
 import org.eclipse.smarthome.core.library.types.StringType;
 import org.eclipse.smarthome.core.thing.ChannelUID;
 import org.eclipse.smarthome.core.thing.Thing;
@@ -34,8 +35,8 @@ public class SrsZr5Handler extends SonyAudioHandler {
 
     private final Logger logger = LoggerFactory.getLogger(SonyAudioHandler.class);
 
-    public SrsZr5Handler(Thing thing) {
-        super(thing);
+    public SrsZr5Handler(Thing thing, WebSocketClient webSocketClient) {
+        super(thing, webSocketClient);
     }
 
     @Override
@@ -86,9 +87,9 @@ public class SrsZr5Handler extends SonyAudioHandler {
         if (command instanceof RefreshType) {
             try {
                 logger.debug("SrsZr5Handler handleSoundSettings RefreshType");
-                Map<String, String> result = sound_settings_cache.getValue();
+                Map<String, String> result = soundSettingsCache.getValue();
                 if (result != null) {
-                    logger.debug("SrsZr5Handler Updateing sound field to {} {}", result.get("clearAudio"),
+                    logger.debug("SrsZr5Handler Updating sound field to {} {}", result.get("clearAudio"),
                             result.get("soundField"));
                     if (result.get("clearAudio").equalsIgnoreCase("on")) {
                         updateState(channelUID, new StringType("clearAudio"));

@@ -103,7 +103,8 @@ public class SonyAudioClientSocket {
 
     public boolean isConnected() {
         if (session == null || !session.isOpen()) {
-            return false;
+            connected = false;
+            return connected;
         }
 
         RemoteEndpoint remote = session.getRemote();
@@ -113,7 +114,7 @@ public class SonyAudioClientSocket {
             remote.sendPing(payload);
         } catch (IOException e) {
             logger.error("Connection to {} lost {}", uri, e);
-            return false;
+            connected = false;
         }
 
         return connected;
@@ -192,7 +193,16 @@ public class SonyAudioClientSocket {
             logger.debug("send message fo {}: {}", uri.toString(), str);
             session.getRemote().sendString(str);
         } else {
-            throw new IOException("socket not initialized");
+            String stack = "";
+            stack += "Printing stack trace:\n";
+            StackTraceElement[] elements = Thread.currentThread().getStackTrace();
+            for (int i = 1; i < elements.length; i++) {
+                StackTraceElement s = elements[i];
+                stack += "\tat " + s.getClassName() + "." + s.getMethodName() + "(" + s.getFileName() + ":"
+                        + s.getLineNumber() + ")\n";
+            }
+            logger.error("Socket not initialized, trying to send {} {}", str, stack);
+            throw new IOException("Socket not initialized");
         }
     }
 

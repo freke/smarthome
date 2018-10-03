@@ -12,6 +12,7 @@
  */
 package org.eclipse.smarthome.binding.sonyaudio.handler;
 
+import org.eclipse.jetty.websocket.client.WebSocketClient;
 import org.eclipse.smarthome.core.library.types.StringType;
 import org.eclipse.smarthome.core.thing.Thing;
 import org.eclipse.smarthome.core.types.Command;
@@ -24,8 +25,8 @@ import org.eclipse.smarthome.core.types.Command;
  */
 public class HtMt500Handler extends SonyAudioHandler {
 
-    public HtMt500Handler(Thing thing) {
-        super(thing);
+    public HtMt500Handler(Thing thing, WebSocketClient webSocketClient) {
+        super(thing, webSocketClient);
     }
 
     @Override
